@@ -1,0 +1,17 @@
+{
+  "short_name": "Lootsy",
+  "name": "Lootsy — Gaming & Défis Fortnite",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#171513",
+  "theme_color": "#171513",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "description": "Suivez le radar Fortnite, créez des groupes privés et relevez des défis gaming entre amis."
+}

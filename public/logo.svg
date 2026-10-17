@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <rect width="512" height="512" fill="#171513" />
+  <g transform="rotate(-33.5 256 256)">
+    <defs>
+      <clipPath id="circle-clip-svg">
+        <circle cx="256" cy="256" r="145" />
+      </clipPath>
+    </defs>
+    <g clip-path="url(#circle-clip-svg)">
+      <rect x="0" y="0" width="512" height="236" fill="#F6F0E7" />
+      <rect x="0" y="276" width="512" height="236" fill="#F6F0E7" />
+      <polygon points="148,267 172,245 364,245 340,267" fill="#FF6538" />
+    </g>
+  </g>
+</svg>

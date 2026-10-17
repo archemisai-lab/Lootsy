@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-obsidian: #171513;
+  --color-ember: #FF6538;
+  --color-ivory: #F6F0E7;
+  --color-roasted: #302923;
+  --color-dust: #B5AA9C;
+  --color-softlime: #D8E5B0;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #171513;
+  color: #F6F0E7;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Custom scrollbar matching roasted / obsidian */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #171513;
+}
+::-webkit-scrollbar-thumb {
+  background: #302923;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B5AA9C;
+}
+
+/* Accessible focus ring */
+:focus-visible {
+  outline: 2px solid #FF6538;
+  outline-offset: 2px;
+}

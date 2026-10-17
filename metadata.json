@@ -1,0 +1,6 @@
+{
+  "name": "Lootsy — Gaming & Défis Fortnite",
+  "description": "Plateforme gaming pour suivre le radar d'actualités Fortnite, créer des groupes privés d'amis et relever des défis partagés avec suivi de progression et XP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
