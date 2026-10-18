@@ -38,17 +38,17 @@ export const HowItWorksView: React.FC<HowItWorksViewProps> = ({ navigate }) => {
             key={s.num}
             className="p-6 rounded-xl bg-[#1e1a17] border border-[#302923] flex items-start gap-4 transition-colors hover:border-[#B5AA9C]/30"
           >
-            <div className="w-8 h-8 rounded-lg bg-[#302923] flex items-center justify-center font-mono font-bold text-xs text-[#FF6538] shrink-0 mt-0.5">
+            <div className="w-8 h-8 rounded-lg bg-[#302923] flex items-center justify-center font-display text-sm text-[#FF6538] tracking-wider shrink-0 mt-0.5">
               {s.num}
             </div>
             <div className="space-y-1.5 flex-1">
-              <h3 className="text-base font-bold text-[#F6F0E7] flex items-center gap-2">
+              <h3 className="text-base font-extrabold text-[#F6F0E7] flex items-center gap-2">
                 <span>{s.title}</span>
                 {idx === steps.length - 1 && (
                   <CheckCircle2 className="w-4 h-4 text-[#D8E5B0]" />
                 )}
               </h3>
-              <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed font-normal">
                 {s.text}
               </p>
             </div>

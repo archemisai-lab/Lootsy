@@ -34,10 +34,10 @@ export const ChallengesListView: React.FC<ChallengesListViewProps> = ({ navigate
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#302923] pb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
             {t('challenges', 'title')}
           </h1>
-          <p className="text-xs sm:text-sm text-[#B5AA9C] mt-1">
+          <p className="text-xs sm:text-sm text-[#B5AA9C] mt-1 font-normal">
             {t('challenges', 'subtitle')}
           </p>
         </div>
@@ -63,7 +63,7 @@ export const ChallengesListView: React.FC<ChallengesListViewProps> = ({ navigate
             <button
               key={item.id}
               onClick={() => setStatusFilter(item.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
                 statusFilter === item.id
                   ? 'bg-[#FF6538] text-white'
                   : 'bg-[#1e1a17] text-[#B5AA9C] hover:text-[#F6F0E7] border border-[#302923]'
@@ -77,11 +77,11 @@ export const ChallengesListView: React.FC<ChallengesListViewProps> = ({ navigate
         {/* Group Selector */}
         {myGroups.length > 1 && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#B5AA9C]">Groupe :</span>
+            <span className="text-xs text-[#B5AA9C] font-medium">Groupe :</span>
             <select
               value={groupFilter}
               onChange={(e) => setGroupFilter(e.target.value)}
-              className="bg-[#1e1a17] border border-[#302923] text-xs text-[#F6F0E7] rounded-lg px-2.5 py-1.5 focus:border-[#FF6538] focus:outline-none"
+              className="bg-[#1e1a17] border border-[#302923] text-xs font-semibold text-[#F6F0E7] rounded-lg px-2.5 py-1.5 focus:border-[#FF6538] focus:outline-none"
             >
               <option value="all">Tous les groupes</option>
               {myGroups.map((g) => (
@@ -97,8 +97,8 @@ export const ChallengesListView: React.FC<ChallengesListViewProps> = ({ navigate
       {/* Challenges List */}
       {filtered.length === 0 ? (
         <div className="p-12 text-center rounded-2xl bg-[#1e1a17] border border-[#302923] space-y-3">
-          <p className="text-sm font-bold text-[#F6F0E7]">Aucun défi trouvé</p>
-          <p className="text-xs text-[#B5AA9C]">Modifiez vos filtres ou lancez un nouveau défi pour votre groupe.</p>
+          <p className="text-sm font-extrabold text-[#F6F0E7]">Aucun défi trouvé</p>
+          <p className="text-xs text-[#B5AA9C] font-normal">Modifiez vos filtres ou lancez un nouveau défi pour votre groupe.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -119,16 +119,16 @@ export const ChallengesListView: React.FC<ChallengesListViewProps> = ({ navigate
                     <span className="font-semibold text-[#F6F0E7] truncate max-w-[200px]">
                       {group?.name || 'Groupe'}
                     </span>
-                    <span className="font-mono font-bold text-[#FF6538] tabular-nums">
+                    <span className="font-display text-sm text-[#FF6538] tracking-wide">
                       +{chal.xpReward} XP
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-[#F6F0E7] group-hover:text-[#FF6538] transition-colors leading-snug">
+                  <h3 className="text-sm font-extrabold text-[#F6F0E7] group-hover:text-[#FF6538] transition-colors leading-snug">
                     {chal.title}
                   </h3>
 
-                  <p className="text-xs text-[#B5AA9C] line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-[#B5AA9C] line-clamp-2 leading-relaxed font-normal">
                     {chal.description}
                   </p>
                 </div>

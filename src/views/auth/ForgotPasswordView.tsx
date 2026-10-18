@@ -1,27 +1,33 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { LootsyLogo } from '../../components/LootsyLogo';
-import { KeyRound, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { KeyRound, CheckCircle2, ArrowLeft, AlertCircle } from 'lucide-react';
 
 interface ForgotPasswordViewProps {
   navigate: (route: string) => void;
 }
 
 export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ navigate }) => {
-  const { t } = useApp();
+  const { resetPassword, t } = useApp();
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
 
+    setError(null);
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    const res = await resetPassword(email);
+    setIsLoading(false);
+
+    if (res.success) {
       setSubmitted(true);
-    }, 400);
+    } else {
+      setError(res.error || 'Erreur lors de l’envoi de l’e-mail');
+    }
   };
 
   return (
@@ -29,10 +35,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ navigate
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-3">
           <LootsyLogo size={48} className="justify-center" />
-          <h1 className="text-2xl font-extrabold text-[#F6F0E7]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
             {t('auth', 'forgotTitle')}
           </h1>
-          <p className="text-xs text-[#B5AA9C]">
+          <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
             {t('auth', 'forgotSubtitle')}
           </p>
         </div>
@@ -41,19 +47,26 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ navigate
           {submitted ? (
             <div className="text-center space-y-4">
               <CheckCircle2 className="w-10 h-10 text-[#D8E5B0] mx-auto" />
-              <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed font-normal">
                 {t('auth', 'forgotSuccess')}
               </p>
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="w-full py-2.5 px-4 rounded-lg bg-[#302923] hover:bg-[#3d342c] text-[#F6F0E7] text-xs font-semibold transition-colors"
+                className="w-full py-2.5 px-4 rounded-lg bg-[#302923] hover:bg-[#3d342c] text-[#F6F0E7] text-xs font-bold transition-colors cursor-pointer"
               >
                 {t('auth', 'backToLogin')}
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-[#F6F0E7]">
                   {t('auth', 'emailLabel')}
@@ -71,10 +84,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ navigate
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 px-4 rounded-lg bg-[#FF6538] hover:bg-[#ff7a53] disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-lg bg-[#FF6538] hover:bg-[#ff7a53] disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isLoading ? (
-                  <span>Vérification…</span>
+                  <span>Envoi via Firebase…</span>
                 ) : (
                   <>
                     <KeyRound className="w-4 h-4" />
@@ -87,7 +100,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ navigate
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="text-xs text-[#B5AA9C] hover:text-[#F6F0E7] inline-flex items-center gap-1 transition-colors"
+                  className="text-xs text-[#B5AA9C] hover:text-[#F6F0E7] inline-flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>{t('auth', 'backToLogin')}</span>

@@ -104,10 +104,10 @@ export const FaqView: React.FC<FaqViewProps> = ({ navigate }) => {
         <div className="w-10 h-10 rounded-xl bg-[#302923] flex items-center justify-center text-[#FF6538] mx-auto">
           <HelpCircle className="w-5 h-5" />
         </div>
-        <h1 className="text-3xl font-extrabold text-[#F6F0E7]">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-[#F6F0E7] tracking-tight">
           Questions fréquentes
         </h1>
-        <p className="text-xs sm:text-sm text-[#B5AA9C]">
+        <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
           Tout ce que vous devez savoir sur le fonctionnement, les règles et la sécurité de Lootsy.
         </p>
       </div>
@@ -133,7 +133,7 @@ export const FaqView: React.FC<FaqViewProps> = ({ navigate }) => {
               </button>
 
               {isOpen && (
-                <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-[#B5AA9C] leading-relaxed border-t border-[#302923]/60">
+                <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-[#B5AA9C] leading-relaxed border-t border-[#302923]/60 font-normal">
                   {item.a[language]}
                 </div>
               )}
@@ -143,11 +143,11 @@ export const FaqView: React.FC<FaqViewProps> = ({ navigate }) => {
       </div>
 
       <div className="p-6 rounded-xl bg-[#181513] border border-[#302923] text-center space-y-3">
-        <h3 className="text-sm font-bold text-[#F6F0E7]">Vous avez une question spécifique ?</h3>
-        <p className="text-xs text-[#B5AA9C]">Notre équipe répond à vos demandes de support et de signalement.</p>
+        <h3 className="text-sm font-extrabold text-[#F6F0E7]">Vous avez une question spécifique ?</h3>
+        <p className="text-xs text-[#B5AA9C] font-normal">Notre équipe répond à vos demandes de support et de signalement.</p>
         <button
           onClick={() => navigate('/contact')}
-          className="px-4 py-2 text-xs font-semibold text-[#F6F0E7] bg-[#302923] hover:bg-[#3d342c] rounded-lg transition-colors border border-[#302923]"
+          className="px-4 py-2 text-xs font-bold text-[#F6F0E7] bg-[#302923] hover:bg-[#3d342c] rounded-lg transition-colors border border-[#302923]"
         >
           Contacter le support
         </button>

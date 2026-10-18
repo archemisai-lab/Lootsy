@@ -125,7 +125,7 @@ export const NewsDetailView: React.FC<NewsDetailViewProps> = ({ slugOrId, naviga
       {/* Related News */}
       {relatedNews.length > 0 && (
         <div className="border-t border-[#302923] pt-8 space-y-4">
-          <h3 className="text-base font-bold text-[#F6F0E7]">
+          <h3 className="text-base font-extrabold text-[#F6F0E7]">
             {t('radar', 'relatedNews')}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

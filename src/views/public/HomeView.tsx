@@ -33,11 +33,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
         </div>
 
         {/* Hero Title & Value Prop */}
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#F6F0E7] tracking-tight leading-[1.1] max-w-4xl mx-auto text-balance">
+        <h1 className="text-hero text-[#F6F0E7] max-w-4xl mx-auto text-balance">
           {t('home', 'heroTitle')}
         </h1>
 
-        <p className="text-base sm:text-lg text-[#B5AA9C] max-w-2xl mx-auto leading-relaxed">
+        <p className="text-base sm:text-lg text-[#B5AA9C] max-w-2xl mx-auto leading-relaxed font-normal">
           {t('home', 'heroSubtitle')}
         </p>
 
@@ -53,7 +53,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
 
           <button
             onClick={() => navigate('/news')}
-            className="w-full sm:w-auto px-6 py-3.5 text-sm font-semibold text-[#F6F0E7] bg-[#302923] hover:bg-[#3d342c] border border-[#302923] rounded-lg transition-colors"
+            className="w-full sm:w-auto px-6 py-3.5 text-sm font-bold text-[#F6F0E7] bg-[#302923] hover:bg-[#3d342c] border border-[#302923] rounded-lg transition-colors"
           >
             {t('home', 'ctaDiscoverRadar')}
           </button>
@@ -82,10 +82,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
               <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#FF6538]">
                 <Flame className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-[#F6F0E7]">
+              <h3 className="text-lg font-extrabold text-[#F6F0E7]">
                 {t('home', 'pillar1Title')}
               </h3>
-              <p className="text-sm text-[#B5AA9C] leading-relaxed">
+              <p className="text-sm text-[#B5AA9C] leading-relaxed font-normal">
                 {t('home', 'pillar1Desc')}
               </p>
             </div>
@@ -95,10 +95,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
               <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#D8E5B0]">
                 <ShieldCheck className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-[#F6F0E7]">
+              <h3 className="text-lg font-extrabold text-[#F6F0E7]">
                 {t('home', 'pillar2Title')}
               </h3>
-              <p className="text-sm text-[#B5AA9C] leading-relaxed">
+              <p className="text-sm text-[#B5AA9C] leading-relaxed font-normal">
                 {t('home', 'pillar2Desc')}
               </p>
             </div>
@@ -108,10 +108,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
               <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#F6F0E7]">
                 <Trophy className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-[#F6F0E7]">
+              <h3 className="text-lg font-extrabold text-[#F6F0E7]">
                 {t('home', 'pillar3Title')}
               </h3>
-              <p className="text-sm text-[#B5AA9C] leading-relaxed">
+              <p className="text-sm text-[#B5AA9C] leading-relaxed font-normal">
                 {t('home', 'pillar3Desc')}
               </p>
             </div>
@@ -123,10 +123,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#302923] pb-4">
           <div>
-            <h2 className="text-2xl font-bold text-[#F6F0E7]">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
               {t('home', 'radarPreviewTitle')}
             </h2>
-            <p className="text-sm text-[#B5AA9C] mt-1">
+            <p className="text-sm text-[#B5AA9C] mt-1 font-normal">
               {t('home', 'radarPreviewSubtitle')}
             </p>
           </div>
@@ -198,44 +198,44 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
       {/* 4. How It Works (7 Steps Overview) */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 space-y-10">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#F6F0E7]">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
             {t('home', 'howItWorksTitle')}
           </h2>
-          <p className="text-sm text-[#B5AA9C]">
+          <p className="text-sm text-[#B5AA9C] font-normal">
             Un parcours simple et fluide pensé pour les vraies sessions de jeu.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="p-5 rounded-xl bg-[#1c1816] border border-[#302923] space-y-2">
-            <span className="text-xs font-mono font-bold text-[#FF6538]">01</span>
-            <h4 className="text-sm font-bold text-[#F6F0E7]">{t('home', 'step1')}</h4>
-            <p className="text-xs text-[#B5AA9C] leading-relaxed">{t('home', 'step1Desc')}</p>
+            <span className="text-base font-display text-[#FF6538] tracking-wider">01</span>
+            <h4 className="text-sm font-extrabold text-[#F6F0E7]">{t('home', 'step1')}</h4>
+            <p className="text-xs text-[#B5AA9C] leading-relaxed font-normal">{t('home', 'step1Desc')}</p>
           </div>
 
           <div className="p-5 rounded-xl bg-[#1c1816] border border-[#302923] space-y-2">
-            <span className="text-xs font-mono font-bold text-[#FF6538]">02</span>
-            <h4 className="text-sm font-bold text-[#F6F0E7]">{t('home', 'step2')}</h4>
-            <p className="text-xs text-[#B5AA9C] leading-relaxed">{t('home', 'step2Desc')}</p>
+            <span className="text-base font-display text-[#FF6538] tracking-wider">02</span>
+            <h4 className="text-sm font-extrabold text-[#F6F0E7]">{t('home', 'step2')}</h4>
+            <p className="text-xs text-[#B5AA9C] leading-relaxed font-normal">{t('home', 'step2Desc')}</p>
           </div>
 
           <div className="p-5 rounded-xl bg-[#1c1816] border border-[#302923] space-y-2">
-            <span className="text-xs font-mono font-bold text-[#FF6538]">03</span>
-            <h4 className="text-sm font-bold text-[#F6F0E7]">{t('home', 'step3')}</h4>
-            <p className="text-xs text-[#B5AA9C] leading-relaxed">{t('home', 'step3Desc')}</p>
+            <span className="text-base font-display text-[#FF6538] tracking-wider">03</span>
+            <h4 className="text-sm font-extrabold text-[#F6F0E7]">{t('home', 'step3')}</h4>
+            <p className="text-xs text-[#B5AA9C] leading-relaxed font-normal">{t('home', 'step3Desc')}</p>
           </div>
 
           <div className="p-5 rounded-xl bg-[#1c1816] border border-[#302923] space-y-2">
-            <span className="text-xs font-mono font-bold text-[#D8E5B0]">04</span>
-            <h4 className="text-sm font-bold text-[#F6F0E7]">{t('home', 'step4')}</h4>
-            <p className="text-xs text-[#B5AA9C] leading-relaxed">{t('home', 'step4Desc')}</p>
+            <span className="text-base font-display text-[#D8E5B0] tracking-wider">04</span>
+            <h4 className="text-sm font-extrabold text-[#F6F0E7]">{t('home', 'step4')}</h4>
+            <p className="text-xs text-[#B5AA9C] leading-relaxed font-normal">{t('home', 'step4Desc')}</p>
           </div>
         </div>
 
         <div className="text-center pt-2">
           <button
             onClick={() => navigate('/how-it-works')}
-            className="text-xs font-semibold text-[#FF6538] hover:underline inline-flex items-center gap-1"
+            className="text-xs font-bold text-[#FF6538] hover:underline inline-flex items-center gap-1"
           >
             <span>Découvrir le guide complet en 7 étapes</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -247,10 +247,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
       <section className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="p-8 rounded-2xl bg-[#181513] border border-[#302923] text-center space-y-4">
           <ShieldCheck className="w-8 h-8 text-[#D8E5B0] mx-auto" />
-          <h3 className="text-xl font-bold text-[#F6F0E7]">
+          <h3 className="text-xl font-extrabold text-[#F6F0E7] tracking-tight">
             {t('home', 'privacyPledgeTitle')}
           </h3>
-          <p className="text-sm text-[#B5AA9C] leading-relaxed max-w-xl mx-auto">
+          <p className="text-sm text-[#B5AA9C] leading-relaxed max-w-xl mx-auto font-normal">
             {t('home', 'privacyPledgeDesc')}
           </p>
         </div>
@@ -258,10 +258,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
 
       {/* 6. Final Call to Action */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-6">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7]">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
           Prêt à défier votre escouade ?
         </h2>
-        <p className="text-sm text-[#B5AA9C] max-w-md mx-auto">
+        <p className="text-sm text-[#B5AA9C] max-w-md mx-auto font-normal">
           Inscrivez-vous en quelques instants et organisez vos parties sans pub, sans scraping automatisé et sans classement factice.
         </p>
         <button

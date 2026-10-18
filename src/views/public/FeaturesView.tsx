@@ -34,7 +34,7 @@ export const FeaturesView: React.FC<FeaturesViewProps> = ({ navigate }) => {
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#FF6538]">
             <Flame className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-[#F6F0E7]">
+          <h3 className="text-lg font-extrabold text-[#F6F0E7]">
             {t('featuresPage', 'radarTitle')}
           </h3>
           <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed">
@@ -47,7 +47,7 @@ export const FeaturesView: React.FC<FeaturesViewProps> = ({ navigate }) => {
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#D8E5B0]">
             <Users className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-[#F6F0E7]">
+          <h3 className="text-lg font-extrabold text-[#F6F0E7]">
             {t('featuresPage', 'groupsTitle')}
           </h3>
           <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed">
@@ -60,7 +60,7 @@ export const FeaturesView: React.FC<FeaturesViewProps> = ({ navigate }) => {
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#F6F0E7]">
             <Trophy className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-[#F6F0E7]">
+          <h3 className="text-lg font-extrabold text-[#F6F0E7]">
             {t('featuresPage', 'challengesTitle')}
           </h3>
           <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed">
@@ -73,7 +73,7 @@ export const FeaturesView: React.FC<FeaturesViewProps> = ({ navigate }) => {
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#FF6538]">
             <Paperclip className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-[#F6F0E7]">
+          <h3 className="text-lg font-extrabold text-[#F6F0E7]">
             {t('featuresPage', 'proofsTitle')}
           </h3>
           <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed">
@@ -86,7 +86,7 @@ export const FeaturesView: React.FC<FeaturesViewProps> = ({ navigate }) => {
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#D8E5B0]">
             <Bell className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-[#F6F0E7]">
+          <h3 className="text-lg font-extrabold text-[#F6F0E7]">
             {t('featuresPage', 'notificationsTitle')}
           </h3>
           <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed">
@@ -99,7 +99,7 @@ export const FeaturesView: React.FC<FeaturesViewProps> = ({ navigate }) => {
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#F6F0E7]">
             <Smartphone className="w-5 h-5" />
           </div>
-          <h3 className="text-lg font-bold text-[#F6F0E7]">
+          <h3 className="text-lg font-extrabold text-[#F6F0E7]">
             {t('featuresPage', 'pwaTitle')}
           </h3>
           <p className="text-xs sm:text-sm text-[#B5AA9C] leading-relaxed">

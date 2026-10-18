@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Authenticated users can read profiles for community / leaderboard
+      allow read: if isSignedIn();
+      // On creation, cannot elevate role or set verification
+      allow create: if isOwner(userId) &&
+        incoming().role == 'user' &&
+        (!('isVerified' in incoming()) || incoming().isVerified == false);
+      // On update, users cannot change their role or isVerified badge unless admin
+      allow update: if isSignedIn() && (
+        (isOwner(userId) && !incoming().diff(existing()).affectedKeys().hasAny(['role', 'isVerified'])) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Admins privileged collection
+    match /admins/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Public News Radar
+    match /news/{newsId} {
+      // Editorial news is publicly readable
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Saved news items
+    match /savedNews/{savedId} {
+      allow read: if isSignedIn() && existing().userUid == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userUid == request.auth.uid;
+      allow delete: if isSignedIn() && existing().userUid == request.auth.uid;
+    }
+
+    // Private squads / groups
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().ownerUid == request.auth.uid;
+      allow update: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdmin());
+
+      // Group members subcollection
+      match /members/{memberId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && (incoming().userUid == request.auth.uid || isAdmin());
+        allow update, delete: if isSignedIn() && (
+          existing().userUid == request.auth.uid ||
+          get(/databases/$(database)/documents/groups/$(groupId)).data.ownerUid == request.auth.uid ||
+          isAdmin()
+        );
+      }
+
+      // Group invite codes
+      match /invites/{inviteId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() && (
+          get(/databases/$(database)/documents/groups/$(groupId)).data.ownerUid == request.auth.uid ||
+          isAdmin()
+        );
+      }
+    }
+
+    // Challenges
+    match /challenges/{challengeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().createdByUid == request.auth.uid;
+      allow update: if isSignedIn() && (existing().createdByUid == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (existing().createdByUid == request.auth.uid || isAdmin());
+
+      // Challenge participants & proof validation
+      match /participants/{participantId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && incoming().userUid == request.auth.uid;
+        // Anti-cheating: A participant cannot approve their own proof!
+        allow update: if isSignedIn() && (
+          (existing().userUid == request.auth.uid && incoming().status in ['in_progress', 'submitted', 'contested'] && !incoming().diff(existing()).affectedKeys().hasAny(['reviewedByUid', 'reviewedAt', 'xpAwarded'])) ||
+          (get(/databases/$(database)/documents/challenges/$(challengeId)).data.createdByUid == request.auth.uid && incoming().status in ['validated', 'rejected']) ||
+          isAdmin()
+        );
+        allow delete: if isAdmin();
+      }
+    }
+
+    // In-app notifications
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && existing().userUid == request.auth.uid;
+      allow update: if isSignedIn() && existing().userUid == request.auth.uid;
+      allow create: if isSignedIn();
+      allow delete: if isSignedIn() && (existing().userUid == request.auth.uid || isAdmin());
+    }
+
+    // XP Ledger
+    match /xpLedger/{ledgerId} {
+      allow read: if isSignedIn() && (existing().userUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // Content reports & Moderation
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && incoming().reportedByUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Audit logs
+    match /auditLogs/{auditId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Immutable audit log!
+    }
+  }
+}

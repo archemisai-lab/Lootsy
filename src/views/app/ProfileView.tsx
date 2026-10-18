@@ -40,19 +40,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ navigate }) => {
       {/* Profile Card Header */}
       <div className="p-6 sm:p-8 rounded-2xl bg-[#1e1a17] border border-[#302923] flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-[#302923] border border-[#FF6538]/40 flex items-center justify-center text-2xl font-black text-[#F6F0E7]">
+          <div className="w-16 h-16 rounded-2xl bg-[#302923] border border-[#FF6538]/40 flex items-center justify-center text-2xl font-display text-[#F6F0E7] tracking-wider">
             {currentUser.displayName.charAt(0).toUpperCase()}
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-[#F6F0E7]">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-[#F6F0E7] tracking-tight">
                 {currentUser.displayName}
               </h1>
               <StatusBadge status={currentUser.role} language={language} />
             </div>
 
-            <p className="text-xs text-[#B5AA9C] flex items-center gap-1.5">
+            <p className="text-xs text-[#B5AA9C] flex items-center gap-1.5 font-normal">
               <Calendar className="w-3.5 h-3.5" />
               <span>Membre depuis le {new Date(currentUser.createdAt).toLocaleDateString()}</span>
             </p>
@@ -62,14 +62,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ navigate }) => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/app/settings')}
-            className="px-3.5 py-2 rounded-lg bg-[#25201c] hover:bg-[#302923] border border-[#302923] text-xs font-semibold text-[#F6F0E7] inline-flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-lg bg-[#25201c] hover:bg-[#302923] border border-[#302923] text-xs font-bold text-[#F6F0E7] inline-flex items-center gap-1.5 transition-colors"
           >
             <Settings className="w-3.5 h-3.5" />
             <span>Paramètres</span>
           </button>
           <button
             onClick={logout}
-            className="px-3.5 py-2 rounded-lg bg-[#25201c] hover:bg-rose-950/40 text-rose-300 border border-[#302923] text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-lg bg-[#25201c] hover:bg-rose-950/40 text-rose-300 border border-[#302923] text-xs font-bold inline-flex items-center gap-1.5 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Déconnexion</span>
@@ -81,13 +81,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ navigate }) => {
       <div className="p-6 rounded-2xl bg-[#1e1a17] border border-[#302923] space-y-4">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <span className="text-xs text-[#B5AA9C]">Rang de joueur</span>
+            <span className="text-xs text-[#B5AA9C] font-medium">Rang de joueur</span>
             <h2 className="text-xl font-extrabold text-[#F6F0E7] flex items-center gap-2">
               <Award className="w-5 h-5 text-[#FF6538]" />
               <span>Niveau {levelInfo.level}</span>
             </h2>
           </div>
-          <span className="font-mono text-xl font-bold text-[#FF6538] tabular-nums">
+          <span className="font-display text-2xl text-[#FF6538] tracking-wide tabular-nums">
             {currentUser.xp} XP au total
           </span>
         </div>
@@ -101,29 +101,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ navigate }) => {
 
         <div className="flex items-center justify-between text-xs text-[#B5AA9C]">
           <span>Progression vers le niveau {levelInfo.level + 1}</span>
-          <span>{levelInfo.currentLevelXp} / {levelInfo.nextLevelXp} XP ({levelInfo.progressPercent}%)</span>
+          <span className="font-medium">{levelInfo.currentLevelXp} / {levelInfo.nextLevelXp} XP ({levelInfo.progressPercent}%)</span>
         </div>
       </div>
 
       {/* Authentic Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-xl bg-[#1a1715] border border-[#302923] space-y-1">
-          <span className="text-xs text-[#B5AA9C]">Réussites vérifiées par preuve</span>
-          <span className="text-2xl font-mono font-bold text-[#D8E5B0] tabular-nums block">
+          <span className="text-xs text-[#B5AA9C] font-medium">Réussites vérifiées par preuve</span>
+          <span className="text-3xl font-display text-[#D8E5B0] tracking-wider tabular-nums block mt-1">
             {completedVerified}
           </span>
         </div>
 
         <div className="p-5 rounded-xl bg-[#1a1715] border border-[#302923] space-y-1">
-          <span className="text-xs text-[#B5AA9C]">Déclarations sur l’honneur</span>
-          <span className="text-2xl font-mono font-bold text-[#F6F0E7] tabular-nums block">
+          <span className="text-xs text-[#B5AA9C] font-medium">Déclarations sur l’honneur</span>
+          <span className="text-3xl font-display text-[#F6F0E7] tracking-wider tabular-nums block mt-1">
             {completedUnverified}
           </span>
         </div>
 
         <div className="p-5 rounded-xl bg-[#1a1715] border border-[#302923] space-y-1">
-          <span className="text-xs text-[#B5AA9C]">Groupes privés d’amis</span>
-          <span className="text-2xl font-mono font-bold text-[#FF6538] tabular-nums block">
+          <span className="text-xs text-[#B5AA9C] font-medium">Groupes privés d’amis</span>
+          <span className="text-3xl font-display text-[#FF6538] tracking-wider tabular-nums block mt-1">
             {myGroups.length}
           </span>
         </div>

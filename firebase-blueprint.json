@@ -1,0 +1,277 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with gaming identity and roles",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string", "minLength": 3, "maxLength": 30 },
+        "epicGamesId": { "type": "string", "maxLength": 40 },
+        "bio": { "type": "string", "maxLength": 280 },
+        "role": { "type": "string", "enum": ["user", "moderator", "admin"] },
+        "isVerified": { "type": "boolean" },
+        "accountStatus": { "type": "string", "enum": ["active", "suspended", "pendingDeletion"] },
+        "totalXp": { "type": "integer" },
+        "level": { "type": "integer" },
+        "avatarColor": { "type": "string" },
+        "joinedAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role", "accountStatus", "totalXp", "level", "joinedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Secure record indicating trusted admin privileges",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin"] },
+        "promotedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "GameUpdate": {
+      "title": "GameUpdate",
+      "description": "Editorial Fortnite news and patch radars",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "minLength": 5, "maxLength": 150 },
+        "excerpt": { "type": "string", "maxLength": 300 },
+        "content": { "type": "string" },
+        "category": { "type": "string", "enum": ["patch", "event", "gameplay", "shop"] },
+        "imageUrl": { "type": "string" },
+        "sourceName": { "type": "string" },
+        "sourceUrl": { "type": "string" },
+        "isOfficial": { "type": "boolean" },
+        "readTimeMinutes": { "type": "integer" },
+        "publishedAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "authorUid": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "category", "publishedAt", "authorUid"]
+    },
+    "SavedNews": {
+      "title": "SavedNews",
+      "description": "User bookmarked news item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userUid": { "type": "string" },
+        "newsId": { "type": "string" },
+        "savedAt": { "type": "string" }
+      },
+      "required": ["id", "userUid", "newsId", "savedAt"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "Private squad group",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "minLength": 3, "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 300 },
+        "avatarColor": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "memberCount": { "type": "integer" }
+      },
+      "required": ["id", "name", "ownerUid", "createdAt"]
+    },
+    "GroupMember": {
+      "title": "GroupMember",
+      "description": "Member inside a squad group",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "userUid": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "admin", "member"] },
+        "joinedAt": { "type": "string" },
+        "gamertag": { "type": "string" },
+        "level": { "type": "integer" },
+        "totalXp": { "type": "integer" }
+      },
+      "required": ["id", "groupId", "userUid", "role", "joinedAt"]
+    },
+    "GroupInvite": {
+      "title": "GroupInvite",
+      "description": "Invitation code for joining a group",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "code": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "expiresAt": { "type": "string" },
+        "maxUses": { "type": "integer" },
+        "usedCount": { "type": "integer" },
+        "isRevoked": { "type": "boolean" }
+      },
+      "required": ["id", "groupId", "code", "createdByUid", "createdAt", "isRevoked"]
+    },
+    "Challenge": {
+      "title": "Challenge",
+      "description": "Squad gaming challenge",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "title": { "type": "string", "minLength": 3, "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 500 },
+        "rewardXp": { "type": "integer" },
+        "proofPolicy": { "type": "string", "enum": ["mandatory", "optional", "none"] },
+        "status": { "type": "string", "enum": ["active", "completed", "expired"] },
+        "createdAt": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "endsAt": { "type": "string" },
+        "participantsCount": { "type": "integer" }
+      },
+      "required": ["id", "groupId", "title", "rewardXp", "proofPolicy", "status", "createdAt", "createdByUid"]
+    },
+    "ChallengeParticipant": {
+      "title": "ChallengeParticipant",
+      "description": "Participant state and proof in a challenge",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "challengeId": { "type": "string" },
+        "groupId": { "type": "string" },
+        "userUid": { "type": "string" },
+        "gamertag": { "type": "string" },
+        "status": { "type": "string", "enum": ["in_progress", "submitted", "validated", "rejected", "contested"] },
+        "proofUrl": { "type": "string" },
+        "proofType": { "type": "string", "enum": ["none", "screenshot", "video"] },
+        "proofNotes": { "type": "string" },
+        "submittedAt": { "type": "string" },
+        "reviewedByUid": { "type": "string" },
+        "reviewedAt": { "type": "string" },
+        "reviewReason": { "type": "string" },
+        "xpAwarded": { "type": "integer" }
+      },
+      "required": ["id", "challengeId", "groupId", "userUid", "status"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "User notification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userUid": { "type": "string" },
+        "type": { "type": "string", "enum": ["challenge", "group", "system"] },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "link": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userUid", "type", "title", "message", "read", "createdAt"]
+    },
+    "XpLedgerEntry": {
+      "title": "XpLedgerEntry",
+      "description": "Auditable XP progression ledger entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userUid": { "type": "string" },
+        "amount": { "type": "integer" },
+        "reason": { "type": "string" },
+        "challengeId": { "type": "string" },
+        "groupId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userUid", "amount", "reason", "createdAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "User or moderation report",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reportedByUid": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["challenge", "proof", "group", "user"] },
+        "targetId": { "type": "string" },
+        "reason": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "resolved", "dismissed"] },
+        "createdAt": { "type": "string" },
+        "resolution": { "type": "string" }
+      },
+      "required": ["id", "reportedByUid", "targetType", "targetId", "reason", "status", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Administrative actions audit log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "adminUid": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetType": { "type": "string" },
+        "targetId": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "adminUid", "action", "targetType", "targetId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Public and private user profiles"
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Verified admin permissions table"
+    },
+    "/news/{newsId}": {
+      "schema": { "$ref": "#/entities/GameUpdate" },
+      "description": "Fortnite editorial news and patches"
+    },
+    "/savedNews/{savedId}": {
+      "schema": { "$ref": "#/entities/SavedNews" },
+      "description": "Bookmarked articles by users"
+    },
+    "/groups/{groupId}": {
+      "schema": { "$ref": "#/entities/Group" },
+      "description": "Private squads"
+    },
+    "/groups/{groupId}/members/{memberId}": {
+      "schema": { "$ref": "#/entities/GroupMember" },
+      "description": "Members belonging to a squad"
+    },
+    "/groups/{groupId}/invites/{inviteId}": {
+      "schema": { "$ref": "#/entities/GroupInvite" },
+      "description": "Invitation tokens for joining squads"
+    },
+    "/challenges/{challengeId}": {
+      "schema": { "$ref": "#/entities/Challenge" },
+      "description": "Challenges tied to squads"
+    },
+    "/challenges/{challengeId}/participants/{participantId}": {
+      "schema": { "$ref": "#/entities/ChallengeParticipant" },
+      "description": "Participants and proof statuses in challenges"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/AppNotification" },
+      "description": "User in-app notifications"
+    },
+    "/xpLedger/{ledgerId}": {
+      "schema": { "$ref": "#/entities/XpLedgerEntry" },
+      "description": "Immutable XP ledger entries"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/Report" },
+      "description": "Moderation and content reports"
+    },
+    "/auditLogs/{auditId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Administrative actions audit trail"
+    }
+  }
+}

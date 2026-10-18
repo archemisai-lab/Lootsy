@@ -91,12 +91,12 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, navig
       <div className="p-6 sm:p-8 rounded-2xl bg-[#1e1a17] border border-[#302923] space-y-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-[#302923] border border-[#FF6538]/30 flex items-center justify-center text-2xl font-black text-[#F6F0E7] shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-[#302923] border border-[#FF6538]/30 flex items-center justify-center text-2xl font-display text-[#F6F0E7] tracking-wider shrink-0">
               {group.name.slice(0, 2).toUpperCase()}
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7]">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
                   {group.name}
                 </h1>
                 <StatusBadge status={isOwner ? 'owner' : 'member'} language={language} />

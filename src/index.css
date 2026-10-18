@@ -7,20 +7,68 @@
   --color-roasted: #302923;
   --color-dust: #B5AA9C;
   --color-softlime: #D8E5B0;
+
+  --font-display: 'Anton', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
 :root {
+  --font-display: 'Anton', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
   color-scheme: dark;
 }
 
 body {
   background-color: #171513;
   color: #F6F0E7;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   overflow-x: hidden;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Token Utilities */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* Responsive Fluid Typography Hierarchy */
+.text-hero {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6.5vw, 5.25rem);
+  line-height: 1.02;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.text-page-heading {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 3.2vw, 2.25rem);
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+}
+
+.text-section-heading {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: clamp(1.125rem, 2.2vw, 1.5rem);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.text-stat-number {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
 
 /* Custom scrollbar matching roasted / obsidian */

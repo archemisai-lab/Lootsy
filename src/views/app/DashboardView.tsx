@@ -55,22 +55,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
       {/* 1. Welcome & Level Banner */}
       <div className="p-6 sm:p-8 rounded-2xl bg-[#1e1a17] border border-[#302923] flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1.5">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
             {t('dashboard', 'welcome', { name: currentUser.displayName })}
           </h1>
-          <p className="text-xs sm:text-sm text-[#B5AA9C]">
+          <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
             Ravi de vous revoir. Voici l’état actuel de vos défis et de votre escouade.
           </p>
         </div>
 
         {/* Level Progression Indicator */}
         <div className="bg-[#171513] border border-[#302923] rounded-xl p-4 min-w-[240px] space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="text-[#F6F0E7] flex items-center gap-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[#F6F0E7] flex items-center gap-1.5 font-bold">
               <Award className="w-4 h-4 text-[#FF6538]" />
               <span>Niveau {levelInfo.level}</span>
             </span>
-            <span className="text-[#FF6538] font-mono tabular-nums">{currentUser.xp} XP</span>
+            <span className="text-[#FF6538] font-display text-base tracking-wide tabular-nums">{currentUser.xp} XP</span>
           </div>
 
           {/* Progress bar */}
@@ -83,7 +83,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
 
           <div className="flex items-center justify-between text-[11px] text-[#B5AA9C]">
             <span>Progression palier</span>
-            <span>{levelInfo.currentLevelXp} / {levelInfo.nextLevelXp} XP</span>
+            <span className="font-medium">{levelInfo.currentLevelXp} / {levelInfo.nextLevelXp} XP</span>
           </div>
         </div>
       </div>
@@ -92,8 +92,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-xl bg-[#1a1715] border border-[#302923] flex items-center justify-between">
           <div>
-            <span className="text-xs text-[#B5AA9C] block">{t('dashboard', 'xpEarned')}</span>
-            <span className="text-2xl font-mono font-bold text-[#F6F0E7] tabular-nums">{currentUser.xp}</span>
+            <span className="text-xs text-[#B5AA9C] block font-medium">{t('dashboard', 'xpEarned')}</span>
+            <span className="text-3xl font-display text-[#F6F0E7] tracking-wider block mt-1 tabular-nums">{currentUser.xp}</span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#FF6538]">
             <Award className="w-5 h-5" />
@@ -102,8 +102,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
 
         <div className="p-5 rounded-xl bg-[#1a1715] border border-[#302923] flex items-center justify-between">
           <div>
-            <span className="text-xs text-[#B5AA9C] block">{t('dashboard', 'completedCount')}</span>
-            <span className="text-2xl font-mono font-bold text-[#F6F0E7] tabular-nums">{myCompletedCount}</span>
+            <span className="text-xs text-[#B5AA9C] block font-medium">{t('dashboard', 'completedCount')}</span>
+            <span className="text-3xl font-display text-[#F6F0E7] tracking-wider block mt-1 tabular-nums">{myCompletedCount}</span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#D8E5B0]">
             <Trophy className="w-5 h-5" />
@@ -112,8 +112,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
 
         <div className="p-5 rounded-xl bg-[#1a1715] border border-[#302923] flex items-center justify-between">
           <div>
-            <span className="text-xs text-[#B5AA9C] block">{t('dashboard', 'activeGroupsCount')}</span>
-            <span className="text-2xl font-mono font-bold text-[#F6F0E7] tabular-nums">{myGroups.length}</span>
+            <span className="text-xs text-[#B5AA9C] block font-medium">{t('dashboard', 'activeGroupsCount')}</span>
+            <span className="text-3xl font-display text-[#F6F0E7] tracking-wider block mt-1 tabular-nums">{myGroups.length}</span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-[#302923] flex items-center justify-center text-[#F6F0E7]">
             <Users className="w-5 h-5" />
@@ -159,13 +159,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
       {/* 4. Active Challenges Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-[#302923] pb-3">
-          <h2 className="text-lg font-bold text-[#F6F0E7] flex items-center gap-2">
+          <h2 className="text-lg font-extrabold text-[#F6F0E7] tracking-tight flex items-center gap-2">
             <Trophy className="w-4 h-4 text-[#FF6538]" />
             <span>{t('dashboard', 'activeChallengesTitle')}</span>
           </h2>
           <button
             onClick={() => navigate('/app/challenges')}
-            className="text-xs font-semibold text-[#FF6538] hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-[#FF6538] hover:underline flex items-center gap-1"
           >
             <span>Voir tous les défis</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -174,10 +174,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
 
         {activeChallenges.length === 0 ? (
           <div className="p-8 text-center rounded-xl bg-[#1a1715] border border-[#302923] space-y-2">
-            <p className="text-xs text-[#B5AA9C]">{t('dashboard', 'noActiveChallenges')}</p>
+            <p className="text-xs text-[#B5AA9C] font-normal">{t('dashboard', 'noActiveChallenges')}</p>
             <button
               onClick={() => navigate('/app/challenges/new')}
-              className="text-xs font-semibold text-[#FF6538] hover:underline"
+              className="text-xs font-bold text-[#FF6538] hover:underline"
             >
               Lancer le premier défi de l’escouade
             </button>
@@ -200,21 +200,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
                     <span className="font-semibold text-[#F6F0E7] truncate max-w-[180px]">
                       {group?.name || 'Groupe'}
                     </span>
-                    <span className="text-[#FF6538] font-bold">+{chal.xpReward} XP</span>
+                    <span className="text-[#FF6538] font-display text-sm tracking-wide">+{chal.xpReward} XP</span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-[#F6F0E7] line-clamp-1">
+                  <h3 className="text-sm font-extrabold text-[#F6F0E7] line-clamp-1">
                     {chal.title}
                   </h3>
 
-                  <p className="text-xs text-[#B5AA9C] line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-[#B5AA9C] line-clamp-2 leading-relaxed font-normal">
                     {chal.description}
                   </p>
 
                   <div className="pt-2 border-t border-[#302923]/60 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 text-[#B5AA9C]">
                       <Clock className="w-3.5 h-3.5" />
-                      <span>{chal.dueAt ? new Date(chal.dueAt).toLocaleDateString() : 'Pas de date limite'}</span>
+                      <span className="font-medium">{chal.dueAt ? new Date(chal.dueAt).toLocaleDateString() : 'Pas de date limite'}</span>
                     </div>
 
                     <StatusBadge
@@ -232,21 +232,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
       {/* 5. Recent News Matching Interests */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-[#302923] pb-3">
-          <h2 className="text-lg font-bold text-[#F6F0E7] flex items-center gap-2">
+          <h2 className="text-lg font-extrabold text-[#F6F0E7] tracking-tight flex items-center gap-2">
             <Flame className="w-4 h-4 text-[#FF6538]" />
             <span>{t('dashboard', 'recentNewsTitle')}</span>
           </h2>
           <button
             onClick={() => navigate('/app/news')}
-            className="text-xs font-semibold text-[#FF6538] hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-[#FF6538] hover:underline flex items-center gap-1"
           >
             <span>Ouvrir le radar</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {matchingNews.map((item) => {
+        {matchingNews.length === 0 ? (
+          <div className="p-8 text-center rounded-xl bg-[#1a1715] border border-[#302923] space-y-2">
+            <p className="text-xs text-[#B5AA9C]">Aucune actualité publiée pour le moment sur le radar.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {matchingNews.map((item) => {
             const cat = categories.find((c) => c.id === item.categoryId);
             return (
               <div
@@ -273,7 +278,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
             );
           })}
         </div>
-      </div>
+      )}
     </div>
+  </div>
   );
 };

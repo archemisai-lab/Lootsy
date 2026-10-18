@@ -60,7 +60,7 @@ export const LootsyLogo: React.FC<LootsyLogoProps> = ({
 
       {showWordmark && (
         <span
-          className={`font-extrabold tracking-tight text-[#F6F0E7] font-['Plus_Jakarta_Sans',sans-serif] ${
+          className={`font-body font-extrabold tracking-tight text-[#F6F0E7] ${
             wordmarkClassName || 'text-xl'
           }`}
         >

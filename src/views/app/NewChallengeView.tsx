@@ -22,7 +22,7 @@ export const NewChallengeView: React.FC<NewChallengeViewProps> = ({ navigate }) 
 
   if (!currentUser) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -38,25 +38,23 @@ export const NewChallengeView: React.FC<NewChallengeViewProps> = ({ navigate }) 
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      const res = createChallenge({
-        groupId,
-        title,
-        description,
-        proofPolicy,
-        validationPolicy: 'creator_or_admin',
-        xpReward,
-        dueAt: dueAt ? new Date(dueAt).toISOString() : null,
-      });
+    const res = await createChallenge({
+      groupId,
+      title,
+      description,
+      proofPolicy,
+      validationPolicy: 'creator_or_admin',
+      xpReward,
+      dueAt: dueAt ? new Date(dueAt).toISOString() : null,
+    });
 
-      setIsLoading(false);
+    setIsLoading(false);
 
-      if (res.success && res.challenge) {
-        navigate(`/app/challenges/${res.challenge.id}`);
-      } else {
-        setError(res.error || 'Erreur lors de la création du défi.');
-      }
-    }, 300);
+    if (res.success && res.challenge) {
+      navigate(`/app/challenges/${res.challenge.id}`);
+    } else {
+      setError(res.error || 'Erreur lors de la création du défi.');
+    }
   };
 
   return (

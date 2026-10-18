@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
-import { DemoUserBar } from './components/DemoUserBar';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 
@@ -37,7 +36,7 @@ import { SettingsView } from './views/app/SettingsView';
 import { AdminView } from './views/admin/AdminView';
 
 const AppContent: React.FC = () => {
-  const { currentUser } = useApp();
+  const { currentUser, authLoading, firebaseError, clearFirebaseError } = useApp();
 
   // Route state initialized from window.location.pathname or hash
   const [route, setRoute] = useState<string>(() => {
@@ -64,12 +63,12 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Protect /app and /admin routes
+  // Protect /app and /admin routes once auth is resolved
   useEffect(() => {
-    if (!currentUser && (route.startsWith('/app') || route.startsWith('/admin'))) {
+    if (!authLoading && !currentUser && (route.startsWith('/app') || route.startsWith('/admin'))) {
       navigate('/login');
     }
-  }, [currentUser, route]);
+  }, [currentUser, authLoading, route]);
 
   // Route Dispatcher
   const renderView = () => {
@@ -176,7 +175,7 @@ const AppContent: React.FC = () => {
     // Fallback 404
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="text-xl font-bold text-[#F6F0E7]">Page introuvable (404)</h2>
+        <h2 className="text-xl font-extrabold text-[#F6F0E7]">Page introuvable (404)</h2>
         <p className="text-xs text-[#B5AA9C]">La destination demandée n’existe pas ou a été déplacée.</p>
         <button
           onClick={() => navigate('/')}
@@ -188,11 +187,17 @@ const AppContent: React.FC = () => {
     );
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#171513] text-[#F6F0E7] flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 rounded-full border-2 border-[#FF6538] border-t-transparent animate-spin" />
+        <p className="text-xs tracking-wider uppercase text-[#B5AA9C] font-semibold">Connexion à Lootsy...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#171513] text-[#F6F0E7]">
-      {/* Test & Demo user session switcher bar */}
-      <DemoUserBar />
-
       {/* Main Top Bar */}
       <Header currentRoute={route} navigate={navigate} />
 

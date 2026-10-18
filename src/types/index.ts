@@ -16,6 +16,8 @@ export interface UserProfile {
   updatedAt: string;
   onboardingCompleted: boolean;
   xp: number;
+  isVerified?: boolean;
+  epicGamesId?: string;
   privacySettings: {
     profileVisibility: 'public_in_groups' | 'private';
     activityVisibility: 'friends_in_groups' | 'private';

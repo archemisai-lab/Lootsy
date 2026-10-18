@@ -65,10 +65,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ navigate }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       <div className="space-y-1 border-b border-[#302923] pb-4">
-        <h1 className="text-2xl font-extrabold text-[#F6F0E7]">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
           {t('settings', 'title')}
         </h1>
-        <p className="text-xs text-[#B5AA9C]">
+        <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
           Gérez votre profil gamer, vos préférences de notification et la confidentialité de vos données.
         </p>
       </div>

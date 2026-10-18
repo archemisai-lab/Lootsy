@@ -13,7 +13,7 @@ export const NewGroupView: React.FC<NewGroupViewProps> = ({ navigate }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setError('Le nom du groupe est obligatoire.');
@@ -21,15 +21,13 @@ export const NewGroupView: React.FC<NewGroupViewProps> = ({ navigate }) => {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = createGroup(name, description);
-      setIsLoading(false);
-      if (res.success && res.group) {
-        navigate(`/app/groups/${res.group.id}`);
-      } else {
-        setError(res.error || 'Erreur lors de la création du groupe.');
-      }
-    }, 300);
+    const res = await createGroup(name, description);
+    setIsLoading(false);
+    if (res.success && res.group) {
+      navigate(`/app/groups/${res.group.id}`);
+    } else {
+      setError(res.error || 'Erreur lors de la création du groupe.');
+    }
   };
 
   return (
@@ -43,10 +41,10 @@ export const NewGroupView: React.FC<NewGroupViewProps> = ({ navigate }) => {
       </button>
 
       <div className="space-y-2">
-        <h1 className="text-2xl font-extrabold text-[#F6F0E7]">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
           {t('groups', 'createTitle')}
         </h1>
-        <p className="text-xs text-[#B5AA9C]">
+        <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
           Créez un espace privé et confidentiel pour vos amis et vos sessions Fortnite.
         </p>
       </div>

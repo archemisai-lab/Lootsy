@@ -145,11 +145,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ navigate }) => {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-[#FF6538]" />
-            <h1 className="text-2xl font-extrabold text-[#F6F0E7]">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
               {t('admin', 'title')}
             </h1>
           </div>
-          <p className="text-xs text-[#B5AA9C]">
+          <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
             {t('admin', 'subtitle')}
           </p>
         </div>
@@ -197,23 +197,23 @@ export const AdminView: React.FC<AdminViewProps> = ({ navigate }) => {
         <div className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-5 rounded-xl bg-[#1e1a17] border border-[#302923] space-y-1">
-              <span className="text-xs text-[#B5AA9C] block">{t('admin', 'publishedNewsCount')}</span>
-              <span className="text-2xl font-mono font-bold text-[#D8E5B0] tabular-nums">{publishedCount}</span>
+              <span className="text-xs text-[#B5AA9C] block font-medium">{t('admin', 'publishedNewsCount')}</span>
+              <span className="text-3xl font-display text-[#D8E5B0] tracking-wider tabular-nums block mt-1">{publishedCount}</span>
             </div>
 
             <div className="p-5 rounded-xl bg-[#1e1a17] border border-[#302923] space-y-1">
-              <span className="text-xs text-[#B5AA9C] block">{t('admin', 'draftNewsCount')}</span>
-              <span className="text-2xl font-mono font-bold text-[#F6F0E7] tabular-nums">{draftCount}</span>
+              <span className="text-xs text-[#B5AA9C] block font-medium">{t('admin', 'draftNewsCount')}</span>
+              <span className="text-3xl font-display text-[#F6F0E7] tracking-wider tabular-nums block mt-1">{draftCount}</span>
             </div>
 
             <div className="p-5 rounded-xl bg-[#1e1a17] border border-[#302923] space-y-1">
-              <span className="text-xs text-[#B5AA9C] block">{t('admin', 'openReportsCount')}</span>
-              <span className="text-2xl font-mono font-bold text-amber-400 tabular-nums">{openReportsCount}</span>
+              <span className="text-xs text-[#B5AA9C] block font-medium">{t('admin', 'openReportsCount')}</span>
+              <span className="text-3xl font-display text-amber-400 tracking-wider tabular-nums block mt-1">{openReportsCount}</span>
             </div>
 
             <div className="p-5 rounded-xl bg-[#1e1a17] border border-[#302923] space-y-1">
-              <span className="text-xs text-[#B5AA9C] block">{t('admin', 'activeUsersCount')}</span>
-              <span className="text-2xl font-mono font-bold text-[#FF6538] tabular-nums">{activeGamersCount}</span>
+              <span className="text-xs text-[#B5AA9C] block font-medium">{t('admin', 'activeUsersCount')}</span>
+              <span className="text-3xl font-display text-[#FF6538] tracking-wider tabular-nums block mt-1">{activeGamersCount}</span>
             </div>
           </div>
 

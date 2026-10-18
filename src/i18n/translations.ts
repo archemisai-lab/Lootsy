@@ -37,7 +37,6 @@ export const translations = {
       language: 'Langue',
       french: 'Français',
       english: 'English',
-      switchDemoUser: 'Changer de joueur (Démo)',
       currentSession: 'Connecté en tant que',
     },
     nav: {
@@ -363,7 +362,6 @@ export const translations = {
       language: 'Language',
       french: 'Français',
       english: 'English',
-      switchDemoUser: 'Switch Player (Demo)',
       currentSession: 'Signed in as',
     },
     nav: {

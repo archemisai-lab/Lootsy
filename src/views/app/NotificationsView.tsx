@@ -18,10 +18,10 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({ navigate }
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#302923] pb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#F6F0E7]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
             {t('notifications', 'title')}
           </h1>
-          <p className="text-xs text-[#B5AA9C] mt-1">
+          <p className="text-xs sm:text-sm text-[#B5AA9C] mt-1 font-normal">
             {t('notifications', 'subtitle')}
           </p>
         </div>

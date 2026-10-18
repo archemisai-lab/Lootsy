@@ -74,11 +74,11 @@ export const ChallengeDetailView: React.FC<ChallengeDetailViewProps> = ({ challe
   const isCreatorOrAdmin = challenge.createdBy === currentUser.uid || currentUser.role === 'admin';
 
   // Handle claim submission
-  const handleClaimSubmit = (e: React.FormEvent) => {
+  const handleClaimSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setClaimError(null);
 
-    const res = submitChallengeClaim(challenge.id, {
+    const res = await submitChallengeClaim(challenge.id, {
       hasProof: claimHasProof,
       notes: claimNotes,
       proofUrl: '/src/assets/images/fn_victory_crown_1792263047262.jpg',
@@ -93,9 +93,9 @@ export const ChallengeDetailView: React.FC<ChallengeDetailViewProps> = ({ challe
   };
 
   // Handle review
-  const handleReviewAccept = (targetUid: string) => {
+  const handleReviewAccept = async (targetUid: string) => {
     setReviewError(null);
-    const res = reviewProof(challenge.id, targetUid, 'accept');
+    const res = await reviewProof(challenge.id, targetUid, 'accept');
     if (res.success) {
       setReviewingParticipantUid(null);
     } else {
@@ -103,13 +103,13 @@ export const ChallengeDetailView: React.FC<ChallengeDetailViewProps> = ({ challe
     }
   };
 
-  const handleReviewReject = (targetUid: string) => {
+  const handleReviewReject = async (targetUid: string) => {
     setReviewError(null);
     if (!rejectReason.trim()) {
       setReviewError('Un motif de refus est obligatoire.');
       return;
     }
-    const res = reviewProof(challenge.id, targetUid, 'reject', rejectReason);
+    const res = await reviewProof(challenge.id, targetUid, 'reject', rejectReason);
     if (res.success) {
       setReviewingParticipantUid(null);
       setRejectReason('');
@@ -119,10 +119,10 @@ export const ChallengeDetailView: React.FC<ChallengeDetailViewProps> = ({ challe
   };
 
   // Handle contest
-  const handleContestSubmit = (e: React.FormEvent) => {
+  const handleContestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setContestError(null);
-    const res = contestRejection(challenge.id, contestReason);
+    const res = await contestRejection(challenge.id, contestReason);
     if (res.success) {
       setShowContestModal(false);
       setContestReason('');
@@ -151,13 +151,13 @@ export const ChallengeDetailView: React.FC<ChallengeDetailViewProps> = ({ challe
               <span>·</span>
               <span>Créé par {creator?.displayName || 'Joueur'}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] leading-snug">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight leading-snug">
               {challenge.title}
             </h1>
           </div>
 
           <div className="text-right sm:shrink-0">
-            <span className="font-mono text-2xl font-black text-[#FF6538] tabular-nums block">
+            <span className="font-display text-2xl sm:text-3xl text-[#FF6538] tracking-wide block">
               +{challenge.xpReward} XP
             </span>
             <span className="text-[11px] text-[#B5AA9C]">Récompense auditable</span>

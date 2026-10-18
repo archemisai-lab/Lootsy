@@ -15,20 +15,7 @@ import {
   Report,
 } from '../types';
 import { translations } from '../i18n/translations';
-import {
-  initialCategories,
-  initialUsers,
-  initialNews,
-  initialGroups,
-  initialMembers,
-  initialInvites,
-  initialChallenges,
-  initialParticipants,
-  initialNotifications,
-  initialLedger,
-  initialAuditLogs,
-  initialReports,
-} from '../data/mockData';
+import { officialCategories } from '../data/categories';
 import {
   calculateLevelFromXp,
   canValidateProof,
@@ -37,38 +24,69 @@ import {
   generateInviteCode,
   resolveChallengeStatus,
 } from '../utils/rules';
+import {
+  auth,
+  db,
+  storage,
+  googleProvider,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  signInWithPopup,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  onSnapshot,
+  storageRef,
+  uploadBytes,
+  getDownloadURL,
+  FirebaseUser,
+} from '../services/firebase';
 
 interface AppContextType {
   currentUser: UserProfile | null;
+  firebaseUser: FirebaseUser | null;
+  authLoading: boolean;
+  firebaseError: string | null;
+  clearFirebaseError: () => void;
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (section: keyof typeof translations.fr, key: string, params?: Record<string, string | number>) => string;
-  users: UserProfile[];
-  switchDemoUser: (uid: string) => void;
-  login: (email: string, pass: string) => { success: boolean; error?: string };
-  signup: (email: string, pass: string, displayName: string) => { success: boolean; error?: string };
-  logout: () => void;
-  completeOnboarding: (interests: string[]) => void;
-  updateProfile: (updates: Partial<UserProfile>) => void;
-  deleteAccount: () => void;
+  login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, pass: string, displayName: string, epicGamesId?: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  completeOnboarding: (interests: string[]) => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   // News
   news: GameUpdate[];
   categories: NewsCategory[];
   savedNewsIds: string[];
-  toggleSaveNews: (newsId: string) => void;
-  createNews: (newsItem: Omit<GameUpdate, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => void;
-  updateNews: (id: string, updates: Partial<GameUpdate>) => void;
-  deleteNews: (id: string) => void;
-  archiveNews: (id: string) => void;
+  toggleSaveNews: (newsId: string) => Promise<void>;
+  createNews: (newsItem: Omit<GameUpdate, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => Promise<{ success: boolean; error?: string }>;
+  updateNews: (id: string, updates: Partial<GameUpdate>) => Promise<void>;
+  deleteNews: (id: string) => Promise<void>;
+  archiveNews: (id: string) => Promise<void>;
   // Groups
   groups: Group[];
   groupMembers: GroupMember[];
   groupInvites: GroupInvite[];
-  createGroup: (name: string, description?: string) => { success: boolean; group?: Group; error?: string };
-  joinGroupWithCode: (code: string) => { success: boolean; group?: Group; error?: string };
-  revokeInvite: (inviteId: string) => void;
-  regenerateInvite: (groupId: string) => string;
-  leaveGroup: (groupId: string) => void;
+  createGroup: (name: string, description?: string) => Promise<{ success: boolean; group?: Group; error?: string }>;
+  joinGroupWithCode: (code: string) => Promise<{ success: boolean; group?: Group; error?: string }>;
+  revokeInvite: (inviteId: string) => Promise<void>;
+  regenerateInvite: (groupId: string) => Promise<string>;
+  leaveGroup: (groupId: string) => Promise<void>;
   // Challenges
   challenges: Challenge[];
   participants: ChallengeParticipant[];
@@ -80,582 +98,686 @@ interface AppContextType {
     validationPolicy: Challenge['validationPolicy'];
     xpReward: number;
     dueAt?: string | null;
-  }) => { success: boolean; challenge?: Challenge; error?: string };
+  }) => Promise<{ success: boolean; challenge?: Challenge; error?: string }>;
   submitChallengeClaim: (
     challengeId: string,
-    options: { hasProof: boolean; proofUrl?: string; notes?: string }
-  ) => { success: boolean; error?: string };
+    options: { hasProof: boolean; proofFile?: File; proofUrl?: string; notes?: string }
+  ) => Promise<{ success: boolean; error?: string }>;
   reviewProof: (
     challengeId: string,
     participantUid: string,
     decision: 'accept' | 'reject',
     reason?: string
-  ) => { success: boolean; error?: string };
-  contestRejection: (challengeId: string, contestReason: string) => { success: boolean; error?: string };
+  ) => Promise<{ success: boolean; error?: string }>;
+  contestRejection: (challengeId: string, contestReason: string) => Promise<{ success: boolean; error?: string }>;
   // Notifications
   notifications: AppNotification[];
   unreadCount: number;
-  markNotificationAsRead: (id: string) => void;
-  markAllNotificationsAsRead: () => void;
-  sendAdminBroadcast: (titleFr: string, titleEn: string, bodyFr: string, bodyEn: string, targetPath?: string) => void;
+  markNotificationAsRead: (id: string) => Promise<void>;
+  markAllNotificationsAsRead: () => Promise<void>;
+  sendAdminBroadcast: (titleFr: string, titleEn: string, bodyFr: string, bodyEn: string, targetPath?: string) => Promise<void>;
   // Ledger, Logs & Reports
+  users: UserProfile[];
   ledger: XpLedgerEntry[];
   auditLogs: AuditLog[];
   reports: Report[];
-  resolveReport: (id: string, resolution: string, status: Report['status']) => void;
-  toggleUserSuspension: (uid: string, reason: string) => void;
-  changeUserRole: (uid: string, role: UserProfile['role']) => void;
+  resolveReport: (id: string, resolution: string, status: Report['status']) => Promise<void>;
+  toggleUserSuspension: (uid: string, reason: string) => Promise<void>;
+  changeUserRole: (uid: string, role: UserProfile['role']) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load stored state or use initial seeds
+  // Locale State
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('lootsy_lang');
     return saved === 'en' || saved === 'fr' ? saved : 'fr';
   });
 
-  const [users, setUsers] = useState<UserProfile[]>(() => {
-    const saved = localStorage.getItem('lootsy_users');
-    return saved ? JSON.parse(saved) : initialUsers;
-  });
-
-  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
-    const saved = localStorage.getItem('lootsy_current_uid');
-    return saved !== null ? saved : 'user-1'; // default to Alex for instant rich UX demo
-  });
-
-  const [news, setNews] = useState<GameUpdate[]>(() => {
-    const saved = localStorage.getItem('lootsy_news');
-    return saved ? JSON.parse(saved) : initialNews;
-  });
-
-  const [savedNewsIds, setSavedNewsIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('lootsy_saved_news');
-    return saved ? JSON.parse(saved) : ['news-1'];
-  });
-
-  const [groups, setGroups] = useState<Group[]>(() => {
-    const saved = localStorage.getItem('lootsy_groups');
-    return saved ? JSON.parse(saved) : initialGroups;
-  });
-
-  const [groupMembers, setGroupMembers] = useState<GroupMember[]>(() => {
-    const saved = localStorage.getItem('lootsy_members');
-    return saved ? JSON.parse(saved) : initialMembers;
-  });
-
-  const [groupInvites, setGroupInvites] = useState<GroupInvite[]>(() => {
-    const saved = localStorage.getItem('lootsy_invites');
-    return saved ? JSON.parse(saved) : initialInvites;
-  });
-
-  const [challenges, setChallenges] = useState<Challenge[]>(() => {
-    const saved = localStorage.getItem('lootsy_challenges');
-    return saved ? JSON.parse(saved) : initialChallenges;
-  });
-
-  const [participants, setParticipants] = useState<ChallengeParticipant[]>(() => {
-    const saved = localStorage.getItem('lootsy_participants');
-    return saved ? JSON.parse(saved) : initialParticipants;
-  });
-
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    const saved = localStorage.getItem('lootsy_notifications');
-    return saved ? JSON.parse(saved) : initialNotifications;
-  });
-
-  const [ledger, setLedger] = useState<XpLedgerEntry[]>(() => {
-    const saved = localStorage.getItem('lootsy_ledger');
-    return saved ? JSON.parse(saved) : initialLedger;
-  });
-
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
-    const saved = localStorage.getItem('lootsy_audit');
-    return saved ? JSON.parse(saved) : initialAuditLogs;
-  });
-
-  const [reports, setReports] = useState<Report[]>(() => {
-    const saved = localStorage.getItem('lootsy_reports');
-    return saved ? JSON.parse(saved) : initialReports;
-  });
-
-  // Sync state to localStorage
-  useEffect(() => {
-    localStorage.setItem('lootsy_lang', language);
-  }, [language]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_users', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    if (currentUserId) {
-      localStorage.setItem('lootsy_current_uid', currentUserId);
-    } else {
-      localStorage.removeItem('lootsy_current_uid');
-    }
-  }, [currentUserId]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_news', JSON.stringify(news));
-  }, [news]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_saved_news', JSON.stringify(savedNewsIds));
-  }, [savedNewsIds]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_groups', JSON.stringify(groups));
-  }, [groups]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_members', JSON.stringify(groupMembers));
-  }, [groupMembers]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_invites', JSON.stringify(groupInvites));
-  }, [groupInvites]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_challenges', JSON.stringify(challenges));
-  }, [challenges]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_participants', JSON.stringify(participants));
-  }, [participants]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_notifications', JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_ledger', JSON.stringify(ledger));
-  }, [ledger]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_audit', JSON.stringify(auditLogs));
-  }, [auditLogs]);
-
-  useEffect(() => {
-    localStorage.setItem('lootsy_reports', JSON.stringify(reports));
-  }, [reports]);
-
-  // Current user helper
-  const currentUser = users.find((u) => u.uid === currentUserId) || null;
-
-  // Language setter
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    if (currentUser) {
-      setUsers((prev) =>
-        prev.map((u) => (u.uid === currentUser.uid ? { ...u, preferredLanguage: lang } : u))
-      );
-    }
+    localStorage.setItem('lootsy_lang', lang);
   };
 
-  // Translation lookup helper with interpolation
-  const t = (
-    section: keyof typeof translations.fr,
-    key: string,
-    params?: Record<string, string | number>
-  ): string => {
+  // Auth State
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [firebaseError, setFirebaseError] = useState<string | null>(null);
+
+  const clearFirebaseError = () => setFirebaseError(null);
+
+  // Firestore Collections Data State (Initialized empty with zero fake data)
+  const [news, setNews] = useState<GameUpdate[]>([]);
+  const [savedNewsIds, setSavedNewsIds] = useState<string[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [groupInvites, setGroupInvites] = useState<GroupInvite[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [participants, setParticipants] = useState<ChallengeParticipant[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [ledger, setLedger] = useState<XpLedgerEntry[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+
+  // Translation helper
+  const t = (section: keyof typeof translations.fr, key: string, params?: Record<string, string | number>): string => {
     const langDict = translations[language] || translations.fr;
-    const sec = (langDict as Record<string, Record<string, string>>)[section];
-    let val = sec ? sec[key] : undefined;
-
-    let result = val || key;
-
+    const sec = (langDict as any)[section];
+    let text = sec && sec[key] ? sec[key] : (translations.fr as any)[section]?.[key] || key;
     if (params) {
-      Object.entries(params).forEach(([paramKey, paramVal]) => {
-        result = result.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramVal));
+      Object.entries(params).forEach(([k, v]) => {
+        text = text.replace(new RegExp(`{${k}}`, 'g'), String(v));
       });
     }
-
-    return result;
+    return text;
   };
 
-  // Demo user switcher
-  const switchDemoUser = (uid: string) => {
-    const target = users.find((u) => u.uid === uid);
-    if (target) {
-      setCurrentUserId(uid);
-      setLanguageState(target.preferredLanguage);
-    }
-  };
+  // 1. Listen for Firebase Auth changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const snap = await getDoc(userDocRef);
+          if (snap.exists()) {
+            const data = snap.data() as UserProfile;
+            setCurrentUser(data);
+          } else {
+            // Check if user is in trusted admin collection
+            const adminDocRef = doc(db, 'admins', user.uid);
+            const adminSnap = await getDoc(adminDocRef);
+            const isAdmin = adminSnap.exists();
 
-  // Auth methods
-  const login = (email: string, _pass: string) => {
-    const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (found) {
-      if (found.accountStatus === 'suspended') {
-        return { success: false, error: 'Compte suspendu par l’administration.' };
+            // Create initial profile for newly authenticated user
+            const newProfile: UserProfile = {
+              uid: user.uid,
+              email: user.email || '',
+              displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'Player'),
+              preferredLanguage: language,
+              interests: [],
+              role: isAdmin ? 'admin' : 'user',
+              isVerified: isAdmin,
+              accountStatus: 'active',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              onboardingCompleted: false,
+              xp: 0,
+              privacySettings: {
+                profileVisibility: 'public_in_groups',
+                activityVisibility: 'friends_in_groups',
+              },
+              notificationPreferences: {
+                pushEnabled: false,
+                newChallenges: true,
+                challengeUpdates: true,
+                friendCompletion: true,
+                dueReminders: true,
+                newsCategories: true,
+                adminAnnouncements: true,
+              },
+            };
+            await setDoc(userDocRef, newProfile, { merge: true });
+            setCurrentUser(newProfile);
+          }
+        } catch (err: any) {
+          console.error('[Lootsy Auth Error]:', err);
+          setFirebaseError(err.message || 'Erreur de chargement du profil');
+        }
+      } else {
+        setCurrentUser(null);
       }
-      setCurrentUserId(found.uid);
-      setLanguageState(found.preferredLanguage);
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [language]);
+
+  // Real-time listener for current user profile changes
+  useEffect(() => {
+    if (!firebaseUser) return;
+    const unsub = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        setCurrentUser(docSnap.data() as UserProfile);
+      }
+    }, (err) => {
+      console.warn('User doc snapshot error:', err);
+    });
+    return () => unsub();
+  }, [firebaseUser]);
+
+  // 2. Real-time News collection listener (Public read)
+  useEffect(() => {
+    const q = query(collection(db, 'news'), orderBy('publishedAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items: GameUpdate[] = [];
+      snapshot.forEach((docItem) => {
+        items.push({ id: docItem.id, ...docItem.data() } as GameUpdate);
+      });
+      setNews(items);
+    }, (err) => {
+      console.warn('News snapshot warning:', err.message);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 3. User-specific real-time listeners (Groups, Challenges, Saved News, Notifications, Ledger)
+  useEffect(() => {
+    if (!currentUser) {
+      setGroups([]);
+      setGroupMembers([]);
+      setGroupInvites([]);
+      setChallenges([]);
+      setParticipants([]);
+      setNotifications([]);
+      setLedger([]);
+      setSavedNewsIds([]);
+      setAuditLogs([]);
+      setReports([]);
+      return;
+    }
+
+    // A. Saved news
+    const savedUnsub = onSnapshot(
+      query(collection(db, 'savedNews'), where('userUid', '==', currentUser.uid)),
+      (snapshot) => {
+        const ids: string[] = [];
+        snapshot.forEach((d) => ids.push(d.data().newsId));
+        setSavedNewsIds(ids);
+      },
+      (err) => console.warn('SavedNews warning:', err.message)
+    );
+
+    // B. Groups (All groups visible to user)
+    const groupsUnsub = onSnapshot(
+      collection(db, 'groups'),
+      (snapshot) => {
+        const grps: Group[] = [];
+        snapshot.forEach((d) => grps.push({ id: d.id, ...d.data() } as Group));
+        setGroups(grps);
+      },
+      (err) => console.warn('Groups warning:', err.message)
+    );
+
+    // C. Challenges
+    const challengesUnsub = onSnapshot(
+      collection(db, 'challenges'),
+      (snapshot) => {
+        const chs: Challenge[] = [];
+        snapshot.forEach((d) => chs.push({ id: d.id, ...d.data() } as Challenge));
+        setChallenges(chs);
+      },
+      (err) => console.warn('Challenges warning:', err.message)
+    );
+
+    // D. Notifications for current user
+    const notifUnsub = onSnapshot(
+      query(collection(db, 'notifications'), where('userUid', '==', currentUser.uid)),
+      (snapshot) => {
+        const list: AppNotification[] = [];
+        snapshot.forEach((d) => list.push({ id: d.id, ...d.data() } as AppNotification));
+        list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        setNotifications(list);
+      },
+      (err) => console.warn('Notifications warning:', err.message)
+    );
+
+    // E. XP Ledger for current user
+    const ledgerUnsub = onSnapshot(
+      query(collection(db, 'xpLedger'), where('userUid', '==', currentUser.uid)),
+      (snapshot) => {
+        const list: XpLedgerEntry[] = [];
+        snapshot.forEach((d) => list.push({ id: d.id, ...d.data() } as XpLedgerEntry));
+        list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        setLedger(list);
+      },
+      (err) => console.warn('Ledger warning:', err.message)
+    );
+
+    // F. Admin items if currentUser.role === 'admin'
+    let usersUnsub: (() => void) | undefined;
+    let auditUnsub: (() => void) | undefined;
+    let reportsUnsub: (() => void) | undefined;
+    if (currentUser.role === 'admin') {
+      usersUnsub = onSnapshot(
+        collection(db, 'users'),
+        (snapshot) => {
+          const uList: UserProfile[] = [];
+          snapshot.forEach((d) => uList.push(d.data() as UserProfile));
+          setUsers(uList);
+        },
+        (err) => console.warn('Users warning:', err.message)
+      );
+
+      auditUnsub = onSnapshot(
+        collection(db, 'auditLogs'),
+        (snapshot) => {
+          const logs: AuditLog[] = [];
+          snapshot.forEach((d) => logs.push({ id: d.id, ...d.data() } as AuditLog));
+          logs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+          setAuditLogs(logs);
+        },
+        (err) => console.warn('AuditLogs warning:', err.message)
+      );
+
+      reportsUnsub = onSnapshot(
+        collection(db, 'reports'),
+        (snapshot) => {
+          const list: Report[] = [];
+          snapshot.forEach((d) => list.push({ id: d.id, ...d.data() } as Report));
+          list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+          setReports(list);
+        },
+        (err) => console.warn('Reports warning:', err.message)
+      );
+    }
+
+    return () => {
+      savedUnsub();
+      groupsUnsub();
+      challengesUnsub();
+      notifUnsub();
+      ledgerUnsub();
+      if (usersUnsub) usersUnsub();
+      if (auditUnsub) auditUnsub();
+      if (reportsUnsub) reportsUnsub();
+    };
+  }, [currentUser]);
+
+  // Auth Operations
+  const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
+    setFirebaseError(null);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), pass);
       return { success: true };
+    } catch (err: any) {
+      let message = 'Identifiants invalides. Veuillez vérifier votre e-mail et votre mot de passe.';
+      if (err.code === 'auth/operation-not-allowed') {
+        message = 'La connexion par e-mail/mot de passe doit être activée dans la console Firebase (Authentication > Providers).';
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        message = 'Adresse e-mail ou mot de passe incorrect.';
+      } else if (err.code === 'auth/too-many-requests') {
+        message = 'Compte temporairement bloqué suite à trop de tentatives. Réessayez plus tard.';
+      } else if (err.code === 'auth/network-request-failed') {
+        message = 'Erreur réseau : impossible de joindre les serveurs Firebase.';
+      }
+      setFirebaseError(message);
+      return { success: false, error: message };
     }
-    return { success: false, error: 'Identifiants invalides.' };
   };
 
-  const signup = (email: string, _pass: string, displayName: string) => {
-    const exists = users.some((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (exists) {
-      return { success: false, error: 'Cette adresse e-mail est déjà utilisée.' };
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    setFirebaseError(null);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      return { success: true };
+    } catch (err: any) {
+      const message = err.message || 'Erreur lors de la connexion avec Google.';
+      setFirebaseError(message);
+      return { success: false, error: message };
     }
+  };
 
-    const newUid = `user-${Date.now()}`;
-    const newUser: UserProfile = {
-      uid: newUid,
-      email,
-      displayName: displayName.trim() || 'Gamer_' + newUid.slice(-4),
-      preferredLanguage: language,
-      interests: ['seasons', 'weapons'],
-      role: 'user',
-      accountStatus: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      onboardingCompleted: false,
-      xp: 0,
-      privacySettings: {
-        profileVisibility: 'public_in_groups',
-        activityVisibility: 'friends_in_groups',
-      },
-      notificationPreferences: {
-        pushEnabled: false,
-        newChallenges: true,
-        challengeUpdates: true,
-        friendCompletion: true,
-        dueReminders: true,
-        newsCategories: true,
-        adminAnnouncements: true,
-      },
-    };
+  const signup = async (
+    email: string,
+    pass: string,
+    displayName: string,
+    epicGamesId?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    setFirebaseError(null);
+    try {
+      const res = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+      const uid = res.user.uid;
 
-    setUsers((prev) => [newUser, ...prev]);
-    setCurrentUserId(newUid);
+      // Check if user is pre-registered in admin table
+      const adminSnap = await getDoc(doc(db, 'admins', uid));
+      const isAdmin = adminSnap.exists();
 
-    // Audit log
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        actorUid: newUid,
-        actorName: newUser.displayName,
-        action: 'USER_REGISTERED',
-        targetType: 'user',
-        targetId: newUid,
+      const newProfile: UserProfile = {
+        uid,
+        email: email.trim().toLowerCase(),
+        displayName: displayName.trim(),
+        epicGamesId: epicGamesId ? epicGamesId.trim() : '',
+        preferredLanguage: language,
+        interests: [],
+        role: isAdmin ? 'admin' : 'user',
+        isVerified: isAdmin,
+        accountStatus: 'active',
         createdAt: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
-
-    return { success: true };
-  };
-
-  const logout = () => {
-    setCurrentUserId(null);
-  };
-
-  const completeOnboarding = (interests: string[]) => {
-    if (!currentUser) return;
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.uid === currentUser.uid
-          ? { ...u, interests, onboardingCompleted: true, updatedAt: new Date().toISOString() }
-          : u
-      )
-    );
-  };
-
-  const updateProfile = (updates: Partial<UserProfile>) => {
-    if (!currentUser) return;
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.uid === currentUser.uid
-          ? { ...u, ...updates, updatedAt: new Date().toISOString() }
-          : u
-      )
-    );
-  };
-
-  const deleteAccount = () => {
-    if (!currentUser) return;
-    const uid = currentUser.uid;
-    // Remove user
-    setUsers((prev) => prev.filter((u) => u.uid !== uid));
-    // Remove from groups
-    setGroups((prev) =>
-      prev.map((g) => ({
-        ...g,
-        memberUids: g.memberUids.filter((id) => id !== uid),
-        memberCount: Math.max(0, g.memberCount - (g.memberUids.includes(uid) ? 1 : 0)),
-      }))
-    );
-    setGroupMembers((prev) => prev.filter((m) => m.uid !== uid));
-    setCurrentUserId(null);
-  };
-
-  // News methods
-  const toggleSaveNews = (newsId: string) => {
-    setSavedNewsIds((prev) =>
-      prev.includes(newsId) ? prev.filter((id) => id !== newsId) : [...prev, newsId]
-    );
-  };
-
-  const createNews = (newsItem: Omit<GameUpdate, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>) => {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    const id = `news-${Date.now()}`;
-    const now = new Date().toISOString();
-    const created: GameUpdate = {
-      ...newsItem,
-      id,
-      gameId: 'fortnite',
-      createdBy: currentUser.uid,
-      updatedBy: currentUser.uid,
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: newsItem.publishedAt || now,
-    };
-    setNews((prev) => [created, ...prev]);
-
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        actorUid: currentUser.uid,
-        actorName: currentUser.displayName,
-        action: 'NEWS_CREATED',
-        targetType: 'gameUpdate',
-        targetId: id,
-        createdAt: now,
-        details: { title: created.title.fr, status: created.status },
-      },
-      ...prev,
-    ]);
-  };
-
-  const updateNews = (id: string, updates: Partial<GameUpdate>) => {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    setNews((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, ...updates, updatedBy: currentUser.uid, updatedAt: new Date().toISOString() }
-          : item
-      )
-    );
-  };
-
-  const deleteNews = (id: string) => {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    setNews((prev) => prev.filter((item) => item.id !== id));
-    setSavedNewsIds((prev) => prev.filter((savedId) => savedId !== id));
-  };
-
-  const archiveNews = (id: string) => {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    updateNews(id, { status: 'archived' });
-  };
-
-  // Groups methods
-  const createGroup = (name: string, description?: string) => {
-    if (!currentUser) return { success: false, error: 'Non authentifié' };
-    const trimmed = name.trim();
-    if (!trimmed) return { success: false, error: 'Le nom du groupe est obligatoire' };
-
-    const groupId = `group-${Date.now()}`;
-    const now = new Date().toISOString();
-    const newGroup: Group = {
-      id: groupId,
-      name: trimmed,
-      description: description?.trim() || '',
-      ownerUid: currentUser.uid,
-      memberUids: [currentUser.uid],
-      memberCount: 1,
-      createdAt: now,
-      updatedAt: now,
-      status: 'active',
-    };
-
-    const newMember: GroupMember = {
-      uid: currentUser.uid,
-      role: 'owner',
-      joinedAt: now,
-      status: 'active',
-      displayName: currentUser.displayName,
-    };
-
-    const inviteCode = generateInviteCode();
-    const newInvite: GroupInvite = {
-      id: `inv-${Date.now()}`,
-      code: inviteCode,
-      groupId,
-      createdBy: currentUser.uid,
-      createdAt: now,
-      expiresAt: null,
-      revokedAt: null,
-      maxUses: 20,
-      usesCount: 0,
-      status: 'active',
-    };
-
-    setGroups((prev) => [newGroup, ...prev]);
-    setGroupMembers((prev) => [newMember, ...prev]);
-    setGroupInvites((prev) => [newInvite, ...prev]);
-
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        actorUid: currentUser.uid,
-        actorName: currentUser.displayName,
-        action: 'GROUP_CREATED',
-        targetType: 'group',
-        targetId: groupId,
-        createdAt: now,
-        details: { name: trimmed },
-      },
-      ...prev,
-    ]);
-
-    return { success: true, group: newGroup };
-  };
-
-  const joinGroupWithCode = (code: string) => {
-    if (!currentUser) return { success: false, error: 'Non authentifié' };
-    const cleanCode = code.trim().toUpperCase();
-
-    const invite = groupInvites.find((inv) => inv.code === cleanCode);
-    if (!invite) {
-      return { success: false, error: 'Code d’invitation introuvable ou incorrect.' };
-    }
-
-    const check = validateInvite(invite);
-    if (!check.valid) {
-      if (check.errorKey === 'code_revoked') {
-        return { success: false, error: 'Ce code d’invitation a été révoqué par le propriétaire.' };
-      }
-      if (check.errorKey === 'code_expired') {
-        return { success: false, error: 'Ce code d’invitation a expiré.' };
-      }
-      if (check.errorKey === 'code_exhausted') {
-        return { success: false, error: 'Ce code d’invitation a atteint sa limite d’utilisations.' };
-      }
-      return { success: false, error: 'Invitation non valide.' };
-    }
-
-    const targetGroup = groups.find((g) => g.id === invite.groupId);
-    if (!targetGroup || targetGroup.status !== 'active') {
-      return { success: false, error: 'Le groupe correspondant n’est plus actif.' };
-    }
-
-    // Check if already member
-    if (targetGroup.memberUids.includes(currentUser.uid)) {
-      return { success: true, group: targetGroup }; // open directly without duplicate
-    }
-
-    const now = new Date().toISOString();
-
-    // Increment invite uses
-    setGroupInvites((prev) =>
-      prev.map((inv) => (inv.id === invite.id ? { ...inv, usesCount: inv.usesCount + 1 } : inv))
-    );
-
-    // Update group
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === targetGroup.id
-          ? {
-              ...g,
-              memberUids: [...g.memberUids, currentUser.uid],
-              memberCount: g.memberCount + 1,
-              updatedAt: now,
-            }
-          : g
-      )
-    );
-
-    // Add member
-    const newMember: GroupMember = {
-      uid: currentUser.uid,
-      role: 'member',
-      joinedAt: now,
-      status: 'active',
-      displayName: currentUser.displayName,
-    };
-    setGroupMembers((prev) => [newMember, ...prev]);
-
-    // Send notification to group owner
-    setNotifications((prev) => [
-      {
-        id: `notif-${Date.now()}`,
-        uid: targetGroup.ownerUid,
-        type: 'group_joined',
-        title: {
-          fr: `${currentUser.displayName} a rejoint ${targetGroup.name}`,
-          en: `${currentUser.displayName} joined ${targetGroup.name}`,
+        updatedAt: new Date().toISOString(),
+        onboardingCompleted: false,
+        xp: 0,
+        privacySettings: {
+          profileVisibility: 'public_in_groups',
+          activityVisibility: 'friends_in_groups',
         },
-        body: {
-          fr: 'Votre escouade s’agrandit ! Préparez vos prochains défis partagés.',
-          en: 'Your squad grows! Prepare your next shared challenges.',
+        notificationPreferences: {
+          pushEnabled: false,
+          newChallenges: true,
+          challengeUpdates: true,
+          friendCompletion: true,
+          dueReminders: true,
+          newsCategories: true,
+          adminAnnouncements: true,
         },
-        targetPath: `/app/groups/${targetGroup.id}`,
-        eventId: `evt-join-${targetGroup.id}-${currentUser.uid}`,
-        createdAt: now,
-        status: 'unread',
-      },
-      ...prev,
-    ]);
+      };
 
-    return { success: true, group: targetGroup };
+      await setDoc(doc(db, 'users', uid), newProfile);
+      setCurrentUser(newProfile);
+      return { success: true };
+    } catch (err: any) {
+      let message = 'Erreur lors de la création du compte.';
+      if (err.code === 'auth/email-already-in-use') {
+        message = 'Cette adresse e-mail est déjà utilisée par un autre compte.';
+      } else if (err.code === 'auth/weak-password') {
+        message = 'Le mot de passe doit comporter au moins 6 caractères.';
+      } else if (err.code === 'auth/invalid-email') {
+        message = 'Adresse e-mail invalide.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        message = 'Le fournisseur Email/Mot de passe doit être activé dans la console Firebase (Authentication > Providers).';
+      }
+      setFirebaseError(message);
+      return { success: false, error: message };
+    }
   };
 
-  const revokeInvite = (inviteId: string) => {
+  const logout = async (): Promise<void> => {
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    setFirebaseError(null);
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      return { success: true };
+    } catch (err: any) {
+      let message = 'Erreur lors de l’envoi de l’e-mail de réinitialisation.';
+      if (err.code === 'auth/user-not-found') {
+        message = 'Aucun compte n’est associé à cette adresse e-mail.';
+      } else if (err.code === 'auth/invalid-email') {
+        message = 'Adresse e-mail invalide.';
+      }
+      return { success: false, error: message };
+    }
+  };
+
+  const completeOnboarding = async (interests: string[]): Promise<void> => {
     if (!currentUser) return;
-    setGroupInvites((prev) =>
-      prev.map((inv) =>
-        inv.id === inviteId ? { ...inv, status: 'revoked', revokedAt: new Date().toISOString() } : inv
-      )
-    );
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        interests,
+        onboardingCompleted: true,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.error('completeOnboarding error:', err);
+    }
   };
 
-  const regenerateInvite = (groupId: string) => {
+  const updateProfile = async (updates: Partial<UserProfile>): Promise<void> => {
+    if (!currentUser) return;
+    try {
+      // Security: never allow self-elevating role or isVerified via updateProfile
+      const safeUpdates = { ...updates };
+      delete (safeUpdates as any).role;
+      delete (safeUpdates as any).isVerified;
+      safeUpdates.updatedAt = new Date().toISOString();
+
+      await updateDoc(doc(db, 'users', currentUser.uid), safeUpdates);
+    } catch (err: any) {
+      console.error('updateProfile error:', err);
+      setFirebaseError(err.message);
+    }
+  };
+
+  const deleteAccount = async (): Promise<void> => {
+    if (!currentUser) return;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        accountStatus: 'pendingDeletion',
+        updatedAt: new Date().toISOString(),
+      });
+      await logout();
+    } catch (err: any) {
+      console.error('deleteAccount error:', err);
+    }
+  };
+
+  // News Operations
+  const toggleSaveNews = async (newsId: string): Promise<void> => {
+    if (!currentUser) return;
+    try {
+      const savedDocId = `${currentUser.uid}_${newsId}`;
+      const savedDocRef = doc(db, 'savedNews', savedDocId);
+      if (savedNewsIds.includes(newsId)) {
+        await deleteDoc(savedDocRef);
+      } else {
+        await setDoc(savedDocRef, {
+          id: savedDocId,
+          userUid: currentUser.uid,
+          newsId,
+          savedAt: new Date().toISOString(),
+        });
+      }
+    } catch (err: any) {
+      console.error('toggleSaveNews error:', err);
+    }
+  };
+
+  const createNews = async (
+    newsItem: Omit<GameUpdate, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return { success: false, error: 'Seul un administrateur peut publier une actualité.' };
+    }
+    try {
+      const newsId = `news-${Date.now()}`;
+      const fullItem: GameUpdate = {
+        ...newsItem,
+        id: newsId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: currentUser.uid,
+        updatedBy: currentUser.uid,
+      };
+      await setDoc(doc(db, 'news', newsId), fullItem);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateNews = async (id: string, updates: Partial<GameUpdate>): Promise<void> => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    try {
+      await updateDoc(doc(db, 'news', id), {
+        ...updates,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser.uid,
+      });
+    } catch (err) {
+      console.error('updateNews error:', err);
+    }
+  };
+
+  const deleteNews = async (id: string): Promise<void> => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    try {
+      await deleteDoc(doc(db, 'news', id));
+    } catch (err) {
+      console.error('deleteNews error:', err);
+    }
+  };
+
+  const archiveNews = async (id: string): Promise<void> => {
+    await updateNews(id, { status: 'archived' });
+  };
+
+  // Group Operations
+  const createGroup = async (name: string, description?: string): Promise<{ success: boolean; group?: Group; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'Vous devez être connecté.' };
+    try {
+      const groupId = `grp-${Date.now()}`;
+      const newGroup: Group = {
+        id: groupId,
+        name: name.trim(),
+        description: description?.trim() || '',
+        ownerUid: currentUser.uid,
+        memberUids: [currentUser.uid],
+        memberCount: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active',
+      };
+
+      await setDoc(doc(db, 'groups', groupId), newGroup);
+
+      // Create owner member document in subcollection
+      const memberId = `${groupId}_${currentUser.uid}`;
+      const memberData: GroupMember = {
+        uid: currentUser.uid,
+        role: 'owner',
+        joinedAt: new Date().toISOString(),
+        status: 'active',
+        displayName: currentUser.displayName,
+      };
+      await setDoc(doc(db, 'groups', groupId, 'members', memberId), memberData);
+
+      // Generate initial invite code
+      const code = generateInviteCode();
+      const inviteData: GroupInvite = {
+        id: `inv-${Date.now()}`,
+        code,
+        groupId,
+        createdBy: currentUser.uid,
+        createdAt: new Date().toISOString(),
+        status: 'active',
+        usesCount: 0,
+      };
+      await setDoc(doc(db, 'groups', groupId, 'invites', inviteData.id), inviteData);
+
+      return { success: true, group: newGroup };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const joinGroupWithCode = async (code: string): Promise<{ success: boolean; group?: Group; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'Vous devez être connecté.' };
+    try {
+      const cleanCode = code.trim().toUpperCase();
+      // Look up group with matching code in groups collection
+      const allGroups = groups;
+      let targetGroup: Group | null = null;
+
+      for (const g of allGroups) {
+        const invSnap = await getDocs(
+          query(collection(db, 'groups', g.id, 'invites'), where('code', '==', cleanCode), where('status', '==', 'active'))
+        );
+        if (!invSnap.empty) {
+          targetGroup = g;
+          break;
+        }
+      }
+
+      if (!targetGroup) {
+        return { success: false, error: 'Code d’invitation invalide, expiré ou révoqué.' };
+      }
+
+      // Add user to members
+      const memberId = `${targetGroup.id}_${currentUser.uid}`;
+      const memberData: GroupMember = {
+        uid: currentUser.uid,
+        role: 'member',
+        joinedAt: new Date().toISOString(),
+        status: 'active',
+        displayName: currentUser.displayName,
+      };
+      await setDoc(doc(db, 'groups', targetGroup.id, 'members', memberId), memberData);
+
+      // Update group member count and memberUids
+      const updatedUids = Array.from(new Set([...(targetGroup.memberUids || []), currentUser.uid]));
+      await updateDoc(doc(db, 'groups', targetGroup.id), {
+        memberUids: updatedUids,
+        memberCount: updatedUids.length,
+        updatedAt: new Date().toISOString(),
+      });
+
+      return { success: true, group: targetGroup };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const revokeInvite = async (inviteId: string): Promise<void> => {
+    // Marks invite as revoked in Firestore
+    try {
+      for (const g of groups) {
+        const invRef = doc(db, 'groups', g.id, 'invites', inviteId);
+        const snap = await getDoc(invRef);
+        if (snap.exists()) {
+          await updateDoc(invRef, {
+            status: 'revoked',
+            revokedAt: new Date().toISOString(),
+          });
+          break;
+        }
+      }
+    } catch (err) {
+      console.error('revokeInvite error:', err);
+    }
+  };
+
+  const regenerateInvite = async (groupId: string): Promise<string> => {
     if (!currentUser) return '';
-    const newCode = generateInviteCode();
-    const newInvite: GroupInvite = {
-      id: `inv-${Date.now()}`,
-      code: newCode,
-      groupId,
-      createdBy: currentUser.uid,
-      createdAt: new Date().toISOString(),
-      expiresAt: null,
-      revokedAt: null,
-      maxUses: 20,
-      usesCount: 0,
-      status: 'active',
-    };
-    setGroupInvites((prev) => [newInvite, ...prev]);
-    return newCode;
+    try {
+      const code = generateInviteCode();
+      const inviteData: GroupInvite = {
+        id: `inv-${Date.now()}`,
+        code,
+        groupId,
+        createdBy: currentUser.uid,
+        createdAt: new Date().toISOString(),
+        status: 'active',
+        usesCount: 0,
+      };
+      await setDoc(doc(db, 'groups', groupId, 'invites', inviteData.id), inviteData);
+      return code;
+    } catch (err) {
+      console.error('regenerateInvite error:', err);
+      return '';
+    }
   };
 
-  const leaveGroup = (groupId: string) => {
+  const leaveGroup = async (groupId: string): Promise<void> => {
     if (!currentUser) return;
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupId
-          ? {
-              ...g,
-              memberUids: g.memberUids.filter((id) => id !== currentUser.uid),
-              memberCount: Math.max(0, g.memberCount - 1),
-            }
-          : g
-      )
-    );
-    setGroupMembers((prev) =>
-      prev.filter((m) => !(m.uid === currentUser.uid && m.role !== 'owner'))
-    );
+    try {
+      const memberId = `${groupId}_${currentUser.uid}`;
+      await deleteDoc(doc(db, 'groups', groupId, 'members', memberId));
+      const targetGroup = groups.find((g) => g.id === groupId);
+      if (targetGroup) {
+        const remaining = (targetGroup.memberUids || []).filter((id) => id !== currentUser.uid);
+        await updateDoc(doc(db, 'groups', groupId), {
+          memberUids: remaining,
+          memberCount: remaining.length,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error('leaveGroup error:', err);
+    }
   };
 
-  // Challenges methods
-  const createChallenge = (data: {
+  // Challenge Operations
+  const createChallenge = async (data: {
     groupId: string;
     title: string;
     description: string;
@@ -663,515 +785,352 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     validationPolicy: Challenge['validationPolicy'];
     xpReward: number;
     dueAt?: string | null;
-  }) => {
-    if (!currentUser) return { success: false, error: 'Non authentifié' };
-    const group = groups.find((g) => g.id === data.groupId);
-    if (!group) return { success: false, error: 'Groupe introuvable' };
-
-    const challengeId = `chal-${Date.now()}`;
-    const now = new Date().toISOString();
-
-    const newChallenge: Challenge = {
-      id: challengeId,
-      groupId: data.groupId,
-      title: data.title.trim(),
-      description: data.description.trim(),
-      createdBy: currentUser.uid,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
-      dueAt: data.dueAt || null,
-      proofPolicy: data.proofPolicy,
-      validationPolicy: data.validationPolicy,
-      xpReward: Math.min(500, Math.max(25, data.xpReward || 100)),
-      participantUids: group.memberUids,
-      gameId: 'fortnite',
-    };
-
-    setChallenges((prev) => [newChallenge, ...prev]);
-
-    // Initial participants entries
-    const newParticipants: ChallengeParticipant[] = group.memberUids.map((uid) => ({
-      uid,
-      challengeId,
-      status: 'not_started',
-      xpAwarded: 0,
-      updatedAt: now,
-    }));
-    setParticipants((prev) => [...newParticipants, ...prev]);
-
-    // Notify other group members
-    group.memberUids
-      .filter((uid) => uid !== currentUser.uid)
-      .forEach((memberUid) => {
-        setNotifications((prev) => [
-          {
-            id: `notif-${Date.now()}-${memberUid}`,
-            uid: memberUid,
-            type: 'challenge_new',
-            title: {
-              fr: `Nouveau défi : ${newChallenge.title}`,
-              en: `New challenge: ${newChallenge.title}`,
-            },
-            body: {
-              fr: `Lancé dans votre groupe "${group.name}". Récompense : +${newChallenge.xpReward} XP.`,
-              en: `Launched in squad "${group.name}". Reward: +${newChallenge.xpReward} XP.`,
-            },
-            targetPath: `/app/challenges/${challengeId}`,
-            eventId: `evt-chal-new-${challengeId}-${memberUid}`,
-            createdAt: now,
-            status: 'unread',
-          },
-          ...prev,
-        ]);
-      });
-
-    return { success: true, challenge: newChallenge };
-  };
-
-  const submitChallengeClaim = (
-    challengeId: string,
-    options: { hasProof: boolean; proofUrl?: string; notes?: string }
-  ) => {
-    if (!currentUser) return { success: false, error: 'Non authentifié' };
-    const challenge = challenges.find((c) => c.id === challengeId);
-    if (!challenge) return { success: false, error: 'Défi introuvable' };
-
-    const now = new Date().toISOString();
-
-    if (challenge.proofPolicy === 'required' && !options.hasProof) {
-      return { success: false, error: 'Ce défi requiert obligatoirement une preuve capture ou vidéo.' };
-    }
-
-    if (options.hasProof) {
-      // Status submitted with proof awaiting review
-      const proofItem = {
-        id: `proof-${Date.now()}`,
-        mediaType: 'image' as const,
-        mediaUrl: options.proofUrl || '/src/assets/images/fn_victory_crown_1792263047262.jpg',
-        uploadedAt: now,
-        uploadedBy: currentUser.uid,
-        status: 'pending' as const,
-        notes: options.notes,
+  }): Promise<{ success: boolean; challenge?: Challenge; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'Vous devez être connecté.' };
+    try {
+      const challengeId = `chal-${Date.now()}`;
+      const newChallenge: Challenge = {
+        id: challengeId,
+        groupId: data.groupId,
+        title: data.title.trim(),
+        description: data.description.trim(),
+        createdBy: currentUser.uid,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        dueAt: data.dueAt || null,
+        proofPolicy: data.proofPolicy,
+        validationPolicy: data.validationPolicy,
+        xpReward: data.xpReward,
+        participantUids: [currentUser.uid],
+        gameId: 'fortnite',
       };
 
-      setParticipants((prev) =>
-        prev.map((p) =>
-          p.challengeId === challengeId && p.uid === currentUser.uid
-            ? {
-                ...p,
-                status: 'submitted',
-                submittedAt: now,
-                proof: proofItem,
-                updatedAt: now,
-              }
-            : p
-        )
-      );
+      await setDoc(doc(db, 'challenges', challengeId), newChallenge);
 
-      // Notify challenge creator / group owner
-      if (challenge.createdBy !== currentUser.uid) {
-        setNotifications((prev) => [
-          {
-            id: `notif-${Date.now()}`,
-            uid: challenge.createdBy,
-            type: 'proof_submitted',
-            title: {
-              fr: `${currentUser.displayName} a soumis une preuve`,
-              en: `${currentUser.displayName} submitted proof`,
-            },
-            body: {
-              fr: `Pour le défi "${challenge.title}". En attente de validation.`,
-              en: `For challenge "${challenge.title}". Awaiting review.`,
-            },
-            targetPath: `/app/challenges/${challengeId}`,
-            eventId: `evt-submit-${challengeId}-${currentUser.uid}`,
-            createdAt: now,
-            status: 'unread',
-          },
-          ...prev,
-        ]);
-      }
-    } else {
-      // Completed unverified (honor code)
-      const xpEarned = calculateXpReward({
-        proofPolicy: challenge.proofPolicy,
-        baseReward: challenge.xpReward,
-        status: 'completed_unverified',
-      });
+      // Add creator as initial participant
+      const participantData: ChallengeParticipant = {
+        uid: currentUser.uid,
+        challengeId,
+        status: 'not_started',
+        xpAwarded: 0,
+        updatedAt: new Date().toISOString(),
+      };
+      await setDoc(doc(db, 'challenges', challengeId, 'participants', currentUser.uid), participantData);
 
-      setParticipants((prev) =>
-        prev.map((p) =>
-          p.challengeId === challengeId && p.uid === currentUser.uid
-            ? {
-                ...p,
-                status: 'completed_unverified',
-                submittedAt: now,
-                completedAt: now,
-                xpAwarded: xpEarned,
-                xpAwardedAt: now,
-                updatedAt: now,
-              }
-            : p
-        )
-      );
-
-      if (xpEarned > 0) {
-        setUsers((prev) =>
-          prev.map((u) => (u.uid === currentUser.uid ? { ...u, xp: u.xp + xpEarned } : u))
-        );
-        setLedger((prev) => [
-          {
-            id: `ledger-${Date.now()}`,
-            uid: currentUser.uid,
-            challengeId,
-            groupId: challenge.groupId,
-            reason: 'Déclaration sur l’honneur (sans preuve)',
-            amount: xpEarned,
-            createdAt: now,
-            idempotencyKey: `unverified-${challengeId}-${currentUser.uid}`,
-          },
-          ...prev,
-        ]);
-      }
+      return { success: true, challenge: newChallenge };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
-
-    return { success: true };
   };
 
-  const reviewProof = (
+  const submitChallengeClaim = async (
+    challengeId: string,
+    options: { hasProof: boolean; proofFile?: File; proofUrl?: string; notes?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'Vous devez être connecté.' };
+    try {
+      let finalProofUrl = options.proofUrl || '';
+      let storagePath = '';
+
+      // Upload file to Firebase Storage if provided
+      if (options.proofFile) {
+        const fileExt = options.proofFile.name.split('.').pop() || 'png';
+        storagePath = `proofs/${challengeId}/${currentUser.uid}_${Date.now()}.${fileExt}`;
+        const fileRef = storageRef(storage, storagePath);
+        await uploadBytes(fileRef, options.proofFile);
+        finalProofUrl = await getDownloadURL(fileRef);
+      }
+
+      const participantRef = doc(db, 'challenges', challengeId, 'participants', currentUser.uid);
+      const isProofRequired = challenges.find((c) => c.id === challengeId)?.proofPolicy === 'required';
+
+      const updateData: Partial<ChallengeParticipant> = {
+        uid: currentUser.uid,
+        challengeId,
+        status: 'submitted',
+        submittedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (options.hasProof || finalProofUrl) {
+        updateData.proof = {
+          id: `proof-${Date.now()}`,
+          mediaType: options.proofFile?.type.startsWith('video') ? 'video' : 'image',
+          mediaUrl: finalProofUrl,
+          storagePath,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: currentUser.uid,
+          status: 'pending',
+          notes: options.notes,
+        };
+      }
+
+      await setDoc(participantRef, updateData, { merge: true });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const reviewProof = async (
     challengeId: string,
     participantUid: string,
     decision: 'accept' | 'reject',
     reason?: string
-  ) => {
-    if (!currentUser) return { success: false, error: 'Non authentifié' };
-    const challenge = challenges.find((c) => c.id === challengeId);
-    if (!challenge) return { success: false, error: 'Défi introuvable' };
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'Action non autorisée.' };
+    const chal = challenges.find((c) => c.id === challengeId);
+    if (!chal) return { success: false, error: 'Défi introuvable.' };
 
-    // Enforcement of spec 16.7: self-validation forbidden
-    const check = canValidateProof({
+    // Anti-cheating rule check from pure rule engine: A participant cannot approve their own proof!
+    const validationCheck = canValidateProof({
       reviewerUid: currentUser.uid,
       participantUid,
-      isOwnerOrAdmin: challenge.createdBy === currentUser.uid || currentUser.role === 'admin',
+      isOwnerOrAdmin: chal.createdBy === currentUser.uid || currentUser.role === 'admin',
     });
-
-    if (!check.allowed) {
-      if (check.reasonKey === 'cannot_validate_own_proof') {
-        return { success: false, error: 'Vous ne pouvez pas valider votre propre preuve.' };
-      }
-      return { success: false, error: 'Seul le créateur du défi ou un administrateur peut valider.' };
+    if (!validationCheck.allowed) {
+      return { success: false, error: 'Vous ne pouvez pas arbitrer votre propre déclaration de défi.' };
     }
 
-    const now = new Date().toISOString();
+    try {
+      const participantRef = doc(db, 'challenges', challengeId, 'participants', participantUid);
+      const newStatus = decision === 'accept' ? 'completed_verified' : 'rejected';
+      const xpAmount = decision === 'accept' ? chal.xpReward : 0;
 
-    if (decision === 'accept') {
-      const xpAward = challenge.xpReward;
+      await updateDoc(participantRef, {
+        status: newStatus,
+        verifiedAt: new Date().toISOString(),
+        verifiedBy: currentUser.uid,
+        rejectionReason: decision === 'reject' ? reason || 'Preuve rejetée par le chef d’escouade.' : null,
+        xpAwarded: xpAmount,
+        updatedAt: new Date().toISOString(),
+      });
 
-      setParticipants((prev) =>
-        prev.map((p) =>
-          p.challengeId === challengeId && p.uid === participantUid
-            ? {
-                ...p,
-                status: 'completed_verified',
-                completedAt: now,
-                verifiedAt: now,
-                verifiedBy: currentUser.uid,
-                xpAwarded: xpAward,
-                xpAwardedAt: now,
-                proof: p.proof ? { ...p.proof, status: 'accepted' } : undefined,
-                updatedAt: now,
-              }
-            : p
-        )
-      );
-
-      // Award XP to participant
-      setUsers((prev) =>
-        prev.map((u) => (u.uid === participantUid ? { ...u, xp: u.xp + xpAward } : u))
-      );
-
-      // Ledger entry
-      setLedger((prev) => [
-        {
-          id: `ledger-${Date.now()}`,
-          uid: participantUid,
+      // If accepted, allocate XP in ledger and update target user's profile
+      if (decision === 'accept' && xpAmount > 0) {
+        // Record in XP Ledger
+        const ledgerId = `xp-${Date.now()}`;
+        await setDoc(doc(db, 'xpLedger', ledgerId), {
+          id: ledgerId,
+          userUid: participantUid,
+          amount: xpAmount,
+          reason: `Défi validé : ${chal.title}`,
           challengeId,
-          groupId: challenge.groupId,
-          reason: `Preuve validée par ${currentUser.displayName}`,
-          amount: xpAward,
-          createdAt: now,
-          idempotencyKey: `verified-${challengeId}-${participantUid}`,
-        },
-        ...prev,
-      ]);
+          groupId: chal.groupId,
+          createdAt: new Date().toISOString(),
+        });
 
-      // Notification to participant
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          uid: participantUid,
-          type: 'proof_accepted',
-          title: {
-            fr: `Preuve validée ! (+${xpAward} XP)`,
-            en: `Proof accepted! (+${xpAward} XP)`,
-          },
-          body: {
-            fr: `${currentUser.displayName} a approuvé votre réussite pour "${challenge.title}".`,
-            en: `${currentUser.displayName} approved your achievement for "${challenge.title}".`,
-          },
-          targetPath: `/app/challenges/${challengeId}`,
-          eventId: `evt-accept-${challengeId}-${participantUid}`,
-          createdAt: now,
-          status: 'unread',
-        },
-        ...prev,
-      ]);
-    } else {
-      // Reject proof with mandatory reason
-      if (!reason?.trim()) {
-        return { success: false, error: 'Un motif de refus est obligatoire.' };
+        // Update target user's XP
+        const targetUserRef = doc(db, 'users', participantUid);
+        const targetSnap = await getDoc(targetUserRef);
+        if (targetSnap.exists()) {
+          const currentXp = targetSnap.data().xp || 0;
+          const newXp = currentXp + xpAmount;
+          await updateDoc(targetUserRef, {
+            xp: newXp,
+            updatedAt: new Date().toISOString(),
+          });
+        }
       }
 
-      setParticipants((prev) =>
-        prev.map((p) =>
-          p.challengeId === challengeId && p.uid === participantUid
-            ? {
-                ...p,
-                status: 'rejected',
-                rejectionReason: reason.trim(),
-                proof: p.proof ? { ...p.proof, status: 'rejected', reviewReason: reason.trim() } : undefined,
-                updatedAt: now,
-              }
-            : p
-        )
-      );
-
-      // Notification to participant
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          uid: participantUid,
-          type: 'proof_rejected',
-          title: {
-            fr: `Preuve refusée : ${challenge.title}`,
-            en: `Proof rejected: ${challenge.title}`,
-          },
-          body: {
-            fr: `Motif : ${reason.trim()}. Vous pouvez contester cette décision.`,
-            en: `Reason: ${reason.trim()}. You can contest this decision.`,
-          },
-          targetPath: `/app/challenges/${challengeId}`,
-          eventId: `evt-reject-${challengeId}-${participantUid}`,
-          createdAt: now,
-          status: 'unread',
-        },
-        ...prev,
-      ]);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
-
-    return { success: true };
   };
 
-  const contestRejection = (challengeId: string, contestReason: string) => {
-    if (!currentUser) return { success: false, error: 'Non authentifié' };
-    if (!contestReason.trim()) return { success: false, error: 'Veuillez préciser le motif de contestation.' };
-
-    const now = new Date().toISOString();
-
-    setParticipants((prev) =>
-      prev.map((p) =>
-        p.challengeId === challengeId && p.uid === currentUser.uid
-          ? {
-                ...p,
-                status: 'contested',
-                contestedAt: now,
-                contestReason: contestReason.trim(),
-                updatedAt: now,
-              }
-          : p
-      )
-    );
-
-    const chal = challenges.find((c) => c.id === challengeId);
-    if (chal && chal.createdBy !== currentUser.uid) {
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          uid: chal.createdBy,
-          type: 'contest_opened',
-          title: {
-            fr: `Contestation ouverte par ${currentUser.displayName}`,
-            en: `Contest filed by ${currentUser.displayName}`,
-          },
-          body: {
-            fr: `Pour le défi "${chal.title}". Motif : ${contestReason.trim()}`,
-            en: `For challenge "${chal.title}". Reason: ${contestReason.trim()}`,
-          },
-          targetPath: `/app/challenges/${challengeId}`,
-          eventId: `evt-contest-${challengeId}-${currentUser.uid}`,
-          createdAt: now,
-          status: 'unread',
-        },
-        ...prev,
-      ]);
+  const contestRejection = async (challengeId: string, contestReason: string): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'Vous devez être connecté.' };
+    try {
+      const participantRef = doc(db, 'challenges', challengeId, 'participants', currentUser.uid);
+      await updateDoc(participantRef, {
+        status: 'contested',
+        contestedAt: new Date().toISOString(),
+        contestReason: contestReason.trim(),
+        updatedAt: new Date().toISOString(),
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
-
-    return { success: true };
   };
 
-  // Notification actions
-  const unreadCount = currentUser
-    ? notifications.filter((n) => n.uid === currentUser.uid && n.status === 'unread').length
-    : 0;
-
-  const markNotificationAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, status: 'read', readAt: new Date().toISOString() } : n
-      )
-    );
+  // Notification Operations
+  const markNotificationAsRead = async (id: string): Promise<void> => {
+    try {
+      await updateDoc(doc(db, 'notifications', id), { read: true });
+    } catch (err) {
+      console.error('markNotificationAsRead error:', err);
+    }
   };
 
-  const markAllNotificationsAsRead = () => {
-    if (!currentUser) return;
-    const now = new Date().toISOString();
-    setNotifications((prev) =>
-      prev.map((n) => (n.uid === currentUser.uid ? { ...n, status: 'read', readAt: now } : n))
-    );
+  const markAllNotificationsAsRead = async (): Promise<void> => {
+    try {
+      const unread = notifications.filter((n) => n.status === 'unread');
+      for (const n of unread) {
+        await updateDoc(doc(db, 'notifications', n.id), {
+          status: 'read',
+          readAt: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error('markAllNotificationsAsRead error:', err);
+    }
   };
 
-  const sendAdminBroadcast = (
+  const sendAdminBroadcast = async (
     titleFr: string,
     titleEn: string,
     bodyFr: string,
     bodyEn: string,
-    targetPath = '/app'
-  ) => {
+    targetPath?: string
+  ): Promise<void> => {
     if (!currentUser || currentUser.role !== 'admin') return;
-    const now = new Date().toISOString();
+    try {
+      // Create broadcast notification
+      const notifId = `notif-${Date.now()}`;
+      await setDoc(doc(db, 'notifications', notifId), {
+        id: notifId,
+        userUid: currentUser.uid, // recorded for sender
+        type: 'admin_broadcast',
+        title: { fr: titleFr, en: titleEn },
+        body: { fr: bodyFr, en: bodyEn },
+        link: targetPath || '/news',
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
 
-    const newNotifs: AppNotification[] = users.map((u) => ({
-      id: `notif-broadcast-${Date.now()}-${u.uid}`,
-      uid: u.uid,
-      type: 'admin_broadcast',
-      title: { fr: titleFr, en: titleEn },
-      body: { fr: bodyFr, en: bodyEn },
-      targetPath,
-      eventId: `evt-broadcast-${Date.now()}`,
-      createdAt: now,
-      status: 'unread',
-    }));
-
-    setNotifications((prev) => [...newNotifs, ...prev]);
-
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        actorUid: currentUser.uid,
-        actorName: currentUser.displayName,
-        action: 'BROADCAST_SENT',
-        targetType: 'system',
-        targetId: 'all_users',
-        createdAt: now,
-        details: { titleFr, recipientCount: users.length },
-      },
-      ...prev,
-    ]);
+      // Audit log entry
+      const auditId = `audit-${Date.now()}`;
+      await setDoc(doc(db, 'auditLogs', auditId), {
+        id: auditId,
+        adminUid: currentUser.uid,
+        adminEmail: currentUser.email,
+        action: 'SEND_BROADCAST',
+        targetType: 'SYSTEM',
+        targetId: notifId,
+        details: titleFr,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('sendAdminBroadcast error:', err);
+    }
   };
 
-  // Reports & Administration
-  const resolveReport = (id: string, resolution: string, status: Report['status']) => {
+  // Moderation & Admin Operations
+  const resolveReport = async (id: string, resolution: string, status: Report['status']): Promise<void> => {
     if (!currentUser || currentUser.role !== 'admin') return;
-    const now = new Date().toISOString();
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              resolution,
-              status,
-              assignedTo: currentUser.uid,
-              resolvedAt: status === 'resolved' || status === 'rejected' ? now : undefined,
-            }
-          : r
-      )
-    );
+    try {
+      await updateDoc(doc(db, 'reports', id), {
+        status,
+        resolution,
+        resolvedAt: new Date().toISOString(),
+        resolvedBy: currentUser.uid,
+      });
+    } catch (err) {
+      console.error('resolveReport error:', err);
+    }
   };
 
-  const toggleUserSuspension = (uid: string, reason: string) => {
+  const toggleUserSuspension = async (uid: string, reason: string): Promise<void> => {
     if (!currentUser || currentUser.role !== 'admin') return;
-    const now = new Date().toISOString();
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.uid === uid) {
-          const nextStatus = u.accountStatus === 'suspended' ? 'active' : 'suspended';
-          return { ...u, accountStatus: nextStatus, updatedAt: now };
-        }
-        return u;
-      })
-    );
+    try {
+      const userRef = doc(db, 'users', uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        const currentStatus = snap.data().accountStatus;
+        const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+        await updateDoc(userRef, {
+          accountStatus: newStatus,
+          updatedAt: new Date().toISOString(),
+        });
 
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        actorUid: currentUser.uid,
-        actorName: currentUser.displayName,
-        action: 'USER_STATUS_TOGGLED',
-        targetType: 'user',
+        // Audit log
+        const auditId = `audit-${Date.now()}`;
+        await setDoc(doc(db, 'auditLogs', auditId), {
+          id: auditId,
+          adminUid: currentUser.uid,
+          adminEmail: currentUser.email,
+          action: newStatus === 'suspended' ? 'SUSPEND_USER' : 'UNSUSPEND_USER',
+          targetType: 'USER',
+          targetId: uid,
+          details: reason,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error('toggleUserSuspension error:', err);
+    }
+  };
+
+  const changeUserRole = async (uid: string, role: UserProfile['role']): Promise<void> => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        role,
+        isVerified: role === 'admin',
+        updatedAt: new Date().toISOString(),
+      });
+
+      if (role === 'admin') {
+        await setDoc(doc(db, 'admins', uid), {
+          uid,
+          role: 'admin',
+          promotedAt: new Date().toISOString(),
+        });
+      } else {
+        await deleteDoc(doc(db, 'admins', uid));
+      }
+
+      // Audit log
+      const auditId = `audit-${Date.now()}`;
+      await setDoc(doc(db, 'auditLogs', auditId), {
+        id: auditId,
+        adminUid: currentUser.uid,
+        adminEmail: currentUser.email,
+        action: 'CHANGE_ROLE',
+        targetType: 'USER',
         targetId: uid,
-        createdAt: now,
-        details: { reason },
-      },
-      ...prev,
-    ]);
+        details: `Rôle mis à jour vers : ${role}`,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('changeUserRole error:', err);
+    }
   };
 
-  const changeUserRole = (uid: string, role: UserProfile['role']) => {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    const now = new Date().toISOString();
-    setUsers((prev) =>
-      prev.map((u) => (u.uid === uid ? { ...u, role, updatedAt: now } : u))
-    );
-
-    setAuditLogs((prev) => [
-      {
-        id: `log-${Date.now()}`,
-        actorUid: currentUser.uid,
-        actorName: currentUser.displayName,
-        action: 'USER_ROLE_CHANGED',
-        targetType: 'user',
-        targetId: uid,
-        createdAt: now,
-        details: { newRole: role },
-      },
-      ...prev,
-    ]);
-  };
+  const unreadCount = notifications.filter((n) => n.status === 'unread').length;
 
   return (
     <AppContext.Provider
       value={{
         currentUser,
+        firebaseUser,
+        authLoading,
+        firebaseError,
+        clearFirebaseError,
         language,
         setLanguage,
         t,
-        users,
-        switchDemoUser,
         login,
+        loginWithGoogle,
         signup,
         logout,
+        resetPassword,
         completeOnboarding,
         updateProfile,
         deleteAccount,
+        // News
         news,
-        categories: initialCategories,
+        categories: officialCategories,
         savedNewsIds,
         toggleSaveNews,
         createNews,
         updateNews,
         deleteNews,
         archiveNews,
+        // Groups
         groups,
         groupMembers,
         groupInvites,
@@ -1180,17 +1139,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         revokeInvite,
         regenerateInvite,
         leaveGroup,
+        // Challenges
         challenges,
         participants,
         createChallenge,
         submitChallengeClaim,
         reviewProof,
         contestRejection,
+        // Notifications
         notifications,
         unreadCount,
         markNotificationAsRead,
         markAllNotificationsAsRead,
         sendAdminBroadcast,
+        // Ledger & Admin
+        users,
         ledger,
         auditLogs,
         reports,

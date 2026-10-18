@@ -28,10 +28,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ navigate }) => {
       <div className="w-full max-w-lg space-y-8">
         <div className="text-center space-y-3">
           <LootsyLogo size={52} className="justify-center" />
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
             {t('auth', 'onboardingTitle')}
           </h1>
-          <p className="text-xs sm:text-sm text-[#B5AA9C]">
+          <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
             {t('auth', 'onboardingSubtitle')}
           </p>
         </div>
@@ -40,11 +40,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ navigate }) => {
           {step === 1 && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <span className="text-xs font-mono font-bold text-[#FF6538]">Étape 1 sur 2</span>
-                <h3 className="text-base font-bold text-[#F6F0E7]">
+                <span className="text-xs font-display text-[#FF6538] tracking-wider uppercase">Étape 1 sur 2</span>
+                <h3 className="text-base font-extrabold text-[#F6F0E7]">
                   Choisissez votre langue préférée
                 </h3>
-                <p className="text-xs text-[#B5AA9C]">
+                <p className="text-xs text-[#B5AA9C] font-normal">
                   Vous pourrez modifier ce paramètre à tout moment.
                 </p>
               </div>
@@ -93,11 +93,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ navigate }) => {
           {step === 2 && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <span className="text-xs font-mono font-bold text-[#FF6538]">Étape 2 sur 2</span>
-                <h3 className="text-base font-bold text-[#F6F0E7]">
+                <span className="text-xs font-display text-[#FF6538] tracking-wider uppercase">Étape 2 sur 2</span>
+                <h3 className="text-base font-extrabold text-[#F6F0E7]">
                   {t('auth', 'chooseCategories')}
                 </h3>
-                <p className="text-xs text-[#B5AA9C]">
+                <p className="text-xs text-[#B5AA9C] font-normal">
                   Sélectionnez les sujets qui alimenteront votre tableau de bord.
                 </p>
               </div>

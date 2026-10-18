@@ -12,7 +12,7 @@ export const JoinGroupView: React.FC<JoinGroupViewProps> = ({ navigate }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!code.trim()) {
@@ -21,15 +21,13 @@ export const JoinGroupView: React.FC<JoinGroupViewProps> = ({ navigate }) => {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = joinGroupWithCode(code);
-      setIsLoading(false);
-      if (res.success && res.group) {
-        navigate(`/app/groups/${res.group.id}`);
-      } else {
-        setError(res.error || 'Code invalide ou expiré.');
-      }
-    }, 300);
+    const res = await joinGroupWithCode(code);
+    setIsLoading(false);
+    if (res.success && res.group) {
+      navigate(`/app/groups/${res.group.id}`);
+    } else {
+      setError(res.error || 'Code invalide ou expiré.');
+    }
   };
 
   return (
@@ -43,10 +41,10 @@ export const JoinGroupView: React.FC<JoinGroupViewProps> = ({ navigate }) => {
       </button>
 
       <div className="space-y-2">
-        <h1 className="text-2xl font-extrabold text-[#F6F0E7]">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F6F0E7] tracking-tight">
           {t('groups', 'joinTitle')}
         </h1>
-        <p className="text-xs text-[#B5AA9C]">
+        <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
           Entrez le code d’invitation fourni par le propriétaire du groupe d’amis.
         </p>
       </div>
