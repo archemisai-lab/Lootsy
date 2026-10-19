@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
+import { AvatarCropModal } from '../../components/AvatarCropModal';
 import {
   User,
   Bell,
@@ -9,6 +10,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Smartphone,
+  Camera,
+  AlertCircle,
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -41,14 +44,49 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ navigate }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    setProfileError(null);
+
+    // Brand protection: Nobody except official admin can have "lootsy" in displayName
+    if (displayName.trim().toLowerCase().includes('lootsy')) {
+      if (currentUser.email.toLowerCase() !== 'archemis.ai@gmail.com') {
+        setProfileError(
+          language === 'fr'
+            ? 'Ce pseudonyme contient le terme protégé « Lootsy », réservé exclusivement à la marque et à l’administration officielle de la plateforme. Veuillez choisir un autre nom de joueur.'
+            : 'This tag contains the protected trademark "Lootsy", strictly reserved for official platform branding and administration. Please select a different gamer tag.'
+        );
+        return;
+      }
+    }
+
     updateProfile({
       displayName: displayName.trim(),
       notificationPreferences: notifPrefs,
       privacySettings: privacyPrefs,
     });
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2500);
+  };
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImageSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleAvatarCropDone = async (croppedDataUrl: string) => {
+    setCropImageSrc(null);
+    await updateProfile({ photoURL: croppedDataUrl });
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
   };
@@ -130,8 +168,68 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ navigate }) => {
       {/* Profile & Account Tab */}
       {activeTab === 'profile' && (
         <form onSubmit={handleSaveProfile} className="space-y-6">
-          <div className="p-6 rounded-xl bg-[#1e1a17] border border-[#302923] space-y-4">
-            <h3 className="text-sm font-bold text-[#F6F0E7]">Informations du profil</h3>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={handleAvatarFile}
+            className="hidden"
+          />
+
+          <div className="p-6 rounded-xl bg-[#1e1a17] border border-[#302923] space-y-5">
+            <h3 className="text-sm font-bold text-[#F6F0E7]">
+              {language === 'fr' ? 'Informations du profil' : 'Profile Information'}
+            </h3>
+
+            {profileError && (
+              <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-relaxed font-semibold">{profileError}</span>
+              </div>
+            )}
+
+            {/* Avatar upload & preview section */}
+            <div className="flex items-center gap-4 pb-2 border-b border-[#302923]">
+              <div className="relative shrink-0">
+                {currentUser.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-[#FF6538]/60 shadow-md"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-[#302923] border border-[#FF6538]/40 flex items-center justify-center text-xl font-display text-[#F6F0E7]">
+                    {currentUser.displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#FF6538] hover:bg-[#ff7a53] text-white shadow transition-transform hover:scale-110 cursor-pointer"
+                  title={language === 'fr' ? 'Changer la photo' : 'Change photo'}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-[#F6F0E7] block">
+                  {language === 'fr' ? 'Photo de profil' : 'Profile Picture'}
+                </span>
+                <p className="text-[11px] text-[#B5AA9C]">
+                  {language === 'fr'
+                    ? 'Importez une image pour l’ajuster avec rotation et masque rond.'
+                    : 'Upload an image to adjust with rotation and circular cropping mask.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1 rounded-md bg-[#25201c] hover:bg-[#302923] border border-[#302923] text-[11px] font-semibold text-[#F6F0E7] transition-colors"
+                >
+                  {language === 'fr' ? 'Choisir une photo' : 'Select photo'}
+                </button>
+              </div>
+            </div>
 
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-[#F6F0E7]">
@@ -378,6 +476,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ navigate }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Avatar Crop Modal */}
+      {cropImageSrc && (
+        <AvatarCropModal
+          imageSrc={cropImageSrc}
+          onCropComplete={handleAvatarCropDone}
+          onClose={() => setCropImageSrc(null)}
+          language={language}
+        />
       )}
     </div>
   );

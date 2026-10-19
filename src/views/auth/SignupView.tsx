@@ -8,7 +8,7 @@ interface SignupViewProps {
 }
 
 export const SignupView: React.FC<SignupViewProps> = ({ navigate }) => {
-  const { signup, loginWithGoogle, t, firebaseError } = useApp();
+  const { signup, loginWithGoogle, t, firebaseError, language } = useApp();
   const [displayName, setDisplayName] = useState('');
   const [epicGamesId, setEpicGamesId] = useState('');
   const [email, setEmail] = useState('');
@@ -23,8 +23,20 @@ export const SignupView: React.FC<SignupViewProps> = ({ navigate }) => {
     setError(null);
 
     if (!displayName.trim()) {
-      setError('Veuillez choisir un nom de joueur.');
+      setError(language === 'fr' ? 'Veuillez choisir un nom de joueur.' : 'Please choose a gamer tag.');
       return;
+    }
+
+    // Brand protection: Nobody except official admin can have "lootsy" in displayName
+    if (displayName.trim().toLowerCase().includes('lootsy')) {
+      if (email.trim().toLowerCase() !== 'archemis.ai@gmail.com') {
+        setError(
+          language === 'fr'
+            ? 'Ce pseudonyme contient le terme protégé « Lootsy », réservé exclusivement à la marque et à l’administration officielle de la plateforme. Veuillez choisir un autre nom de joueur.'
+            : 'This tag contains the protected trademark "Lootsy", strictly reserved for official platform branding and administration. Please select a different gamer tag.'
+        );
+        return;
+      }
     }
 
     if (password.length < 6) {

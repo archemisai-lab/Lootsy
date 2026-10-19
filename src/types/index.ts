@@ -1,7 +1,8 @@
 export type Language = 'fr' | 'en';
 
-export type UserRole = 'user' | 'moderator' | 'admin';
-export type AccountStatus = 'active' | 'suspended' | 'pendingDeletion';
+export type UserRole = 'user' | 'moderator' | 'editor' | 'group_manager' | 'admin';
+export type UserBadge = 'creator' | 'staff' | 'founder' | 'official_group' | 'helpful' | 'veteran';
+export type AccountStatus = 'active' | 'suspended' | 'banned' | 'pendingDeletion';
 
 export interface UserProfile {
   uid: string;
@@ -18,6 +19,14 @@ export interface UserProfile {
   xp: number;
   isVerified?: boolean;
   epicGamesId?: string;
+  badges?: UserBadge[];
+  suspensionUntil?: string | null;
+  suspensionReason?: string | null;
+  bannedAt?: string | null;
+  banReason?: string | null;
+  pendingDeletionAt?: string | null;
+  pendingDeletionReason?: string | null;
+  lastActiveAt?: string;
   privacySettings: {
     profileVisibility: 'public_in_groups' | 'private';
     activityVisibility: 'friends_in_groups' | 'private';
@@ -80,6 +89,8 @@ export type GroupRole = 'owner' | 'moderator' | 'member';
 export type GroupStatus = 'active' | 'archived' | 'deleted';
 
 export interface GroupMember {
+  id?: string;
+  groupId?: string;
   uid: string;
   role: GroupRole;
   joinedAt: string;
@@ -248,5 +259,20 @@ export interface AuditLog {
   targetType: string;
   targetId: string;
   createdAt: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> | string;
 }
+
+export interface SystemSettings {
+  maintenanceMode: boolean;
+  maintenanceMessage: {
+    fr: string;
+    en: string;
+  };
+  minXpReward: number;
+  maxXpReward: number;
+  maxFileUploadMb: number;
+  defaultProofPolicy: 'none' | 'optional' | 'required';
+  updatedAt?: string;
+  updatedBy?: string;
+}
+

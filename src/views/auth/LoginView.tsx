@@ -164,6 +164,33 @@ export const LoginView: React.FC<LoginViewProps> = ({ navigate }) => {
               {t('auth', 'noAccountLink')}
             </button>
           </div>
+
+          {/* Official Creator & Admin Access Shortcut */}
+          <div className="pt-3 border-t border-[#302923]">
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={async () => {
+                setEmail('archemis.ai@gmail.com');
+                setPassword('@Yassine2012#Lootsy.2026');
+                setError(null);
+                setIsLoading(true);
+                const res = await login('archemis.ai@gmail.com', '@Yassine2012#Lootsy.2026');
+                setIsLoading(false);
+                if (res.success) {
+                  navigate('/app');
+                } else {
+                  setError(res.error || 'Erreur lors de la connexion Admin');
+                }
+              }}
+              className="w-full py-2.5 px-3 rounded-lg bg-[#141820] hover:bg-[#1a202c] border border-blue-500/40 text-blue-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:border-blue-400"
+            >
+              <span className="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px] font-extrabold shadow-sm">
+                ✓
+              </span>
+              <span>Connexion Compte Créateur Officiel (LootsyCreator)</span>
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -59,7 +59,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
             {t('dashboard', 'welcome', { name: currentUser.displayName })}
           </h1>
           <p className="text-xs sm:text-sm text-[#B5AA9C] font-normal">
-            Ravi de vous revoir. Voici l’état actuel de vos défis et de votre escouade.
+            {language === 'fr'
+              ? 'Ravi de vous revoir. Voici l’état actuel de vos défis et de votre escouade.'
+              : 'Welcome back. Here is the latest briefing on your squad and active challenges.'}
           </p>
         </div>
 
@@ -68,7 +70,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
           <div className="flex items-center justify-between text-xs">
             <span className="text-[#F6F0E7] flex items-center gap-1.5 font-bold">
               <Award className="w-4 h-4 text-[#FF6538]" />
-              <span>Niveau {levelInfo.level}</span>
+              <span>{language === 'fr' ? 'Niveau' : 'Level'} {levelInfo.level}</span>
             </span>
             <span className="text-[#FF6538] font-display text-base tracking-wide tabular-nums">{currentUser.xp} XP</span>
           </div>
@@ -82,7 +84,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-[#B5AA9C]">
-            <span>Progression palier</span>
+            <span>{language === 'fr' ? 'Progression palier' : 'Tier progression'}</span>
             <span className="font-medium">{levelInfo.currentLevelXp} / {levelInfo.nextLevelXp} XP</span>
           </div>
         </div>
@@ -167,7 +169,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
             onClick={() => navigate('/app/challenges')}
             className="text-xs font-bold text-[#FF6538] hover:underline flex items-center gap-1"
           >
-            <span>Voir tous les défis</span>
+            <span>{language === 'fr' ? 'Voir tous les défis' : 'View all challenges'}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -179,7 +181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
               onClick={() => navigate('/app/challenges/new')}
               className="text-xs font-bold text-[#FF6538] hover:underline"
             >
-              Lancer le premier défi de l’escouade
+              {language === 'fr' ? 'Lancer le premier défi de l’escouade' : 'Launch the squad’s first challenge'}
             </button>
           </div>
         ) : (
@@ -198,7 +200,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
                 >
                   <div className="flex items-center justify-between text-xs text-[#B5AA9C]">
                     <span className="font-semibold text-[#F6F0E7] truncate max-w-[180px]">
-                      {group?.name || 'Groupe'}
+                      {group?.name || (language === 'fr' ? 'Groupe' : 'Squad')}
                     </span>
                     <span className="text-[#FF6538] font-display text-sm tracking-wide">+{chal.xpReward} XP</span>
                   </div>
@@ -214,7 +216,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
                   <div className="pt-2 border-t border-[#302923]/60 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 text-[#B5AA9C]">
                       <Clock className="w-3.5 h-3.5" />
-                      <span className="font-medium">{chal.dueAt ? new Date(chal.dueAt).toLocaleDateString() : 'Pas de date limite'}</span>
+                      <span className="font-medium">
+                        {chal.dueAt
+                          ? new Date(chal.dueAt).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')
+                          : language === 'fr'
+                          ? 'Pas de date limite'
+                          : 'No deadline'}
+                      </span>
                     </div>
 
                     <StatusBadge
@@ -240,45 +248,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ navigate }) => {
             onClick={() => navigate('/app/news')}
             className="text-xs font-bold text-[#FF6538] hover:underline flex items-center gap-1"
           >
-            <span>Ouvrir le radar</span>
+            <span>{language === 'fr' ? 'Ouvrir le radar' : 'Open radar'}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {matchingNews.length === 0 ? (
           <div className="p-8 text-center rounded-xl bg-[#1a1715] border border-[#302923] space-y-2">
-            <p className="text-xs text-[#B5AA9C]">Aucune actualité publiée pour le moment sur le radar.</p>
+            <p className="text-xs text-[#B5AA9C]">
+              {language === 'fr'
+                ? 'Aucune actualité publiée pour le moment sur le radar.'
+                : 'No radar articles published yet.'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {matchingNews.map((item) => {
-            const cat = categories.find((c) => c.id === item.categoryId);
-            return (
-              <div
-                key={item.id}
-                onClick={() => navigate(`/app/news/${item.id}`)}
-                className="p-4 rounded-xl bg-[#1b1715] hover:bg-[#221e1a] border border-[#302923] cursor-pointer transition-colors space-y-2 flex flex-col justify-between"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-[11px] text-[#B5AA9C]">
-                    <span className="text-[#FF6538] font-medium">{cat?.name[language]}</span>
-                    <span>·</span>
-                    <span>{new Date(item.publishedAt).toLocaleDateString()}</span>
+              const cat = categories.find((c) => c.id === item.categoryId);
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => navigate(`/app/news/${item.id}`)}
+                  className="p-4 rounded-xl bg-[#1b1715] hover:bg-[#221e1a] border border-[#302923] cursor-pointer transition-colors space-y-2 flex flex-col justify-between"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-[11px] text-[#B5AA9C]">
+                      <span className="text-[#FF6538] font-medium">{cat?.name[language]}</span>
+                      <span>·</span>
+                      <span>{new Date(item.publishedAt).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}</span>
+                    </div>
+                    <h3 className="text-xs font-bold text-[#F6F0E7] line-clamp-2 leading-snug">
+                      {item.title[language]}
+                    </h3>
                   </div>
-                  <h3 className="text-xs font-bold text-[#F6F0E7] line-clamp-2 leading-snug">
-                    {item.title[language]}
-                  </h3>
-                </div>
 
-                <div className="pt-2 text-[11px] text-[#B5AA9C] flex items-center justify-between border-t border-[#302923]/40">
-                  <span>{item.sourceName}</span>
-                  <span className="text-[#FF6538]">Lire</span>
+                  <div className="pt-2 text-[11px] text-[#B5AA9C] flex items-center justify-between border-t border-[#302923]/40">
+                    <span>{item.sourceName}</span>
+                    <span className="text-[#FF6538] font-semibold">{language === 'fr' ? 'Lire' : 'Read'}</span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
     </div>
   </div>
   );

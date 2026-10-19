@@ -13,6 +13,9 @@ import {
   XpLedgerEntry,
   AuditLog,
   Report,
+  SystemSettings,
+  UserBadge,
+  UserRole,
 } from '../types';
 import { translations } from '../i18n/translations';
 import { officialCategories } from '../data/categories';
@@ -124,6 +127,41 @@ interface AppContextType {
   resolveReport: (id: string, resolution: string, status: Report['status']) => Promise<void>;
   toggleUserSuspension: (uid: string, reason: string) => Promise<void>;
   changeUserRole: (uid: string, role: UserProfile['role']) => Promise<void>;
+  // Extended Official Admin Operations
+  systemSettings: SystemSettings;
+  adminCreateGroup: (name: string, description?: string) => Promise<{ success: boolean; group?: Group; error?: string }>;
+  adminUpdateGroup: (groupId: string, updates: Partial<Group>, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminArchiveGroup: (groupId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminDeleteGroup: (groupId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminTransferGroupOwnership: (groupId: string, newOwnerUid: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminAddUserToGroup: (groupId: string, targetUid: string, role?: GroupMember['role']) => Promise<{ success: boolean; error?: string }>;
+  adminRemoveUserFromGroup: (groupId: string, targetUid: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminSetGroupMemberRole: (groupId: string, targetUid: string, role: GroupMember['role']) => Promise<{ success: boolean; error?: string }>;
+  adminCreateChallenge: (data: {
+    groupId: string;
+    title: string;
+    description: string;
+    proofPolicy: Challenge['proofPolicy'];
+    validationPolicy: Challenge['validationPolicy'];
+    xpReward: number;
+    dueAt?: string | null;
+  }) => Promise<{ success: boolean; challenge?: Challenge; error?: string }>;
+  adminUpdateChallenge: (challengeId: string, updates: Partial<Challenge>, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminCancelChallenge: (challengeId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminArchiveChallenge: (challengeId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminDeleteChallenge: (challengeId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminForceExpireChallenge: (challengeId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminReviewProof: (challengeId: string, participantUid: string, decision: 'accept' | 'reject', reason?: string) => Promise<{ success: boolean; error?: string }>;
+  adminAssignRole: (targetUid: string, role: UserRole, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminAssignBadge: (targetUid: string, badge: UserBadge, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminRevokeBadge: (targetUid: string, badge: UserBadge, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminSuspendUser: (targetUid: string, untilDate: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminBanUser: (targetUid: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminReactivateUser: (targetUid: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminTriggerUserDeletion: (targetUid: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminRevokePushTokens: (targetUid: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminCorrectXp: (targetUid: string, amount: number, reason: string, challengeId?: string, groupId?: string) => Promise<{ success: boolean; error?: string }>;
+  adminUpdateSystemSettings: (updates: Partial<SystemSettings>, reason: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -161,6 +199,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>({
+    maintenanceMode: false,
+    maintenanceMessage: {
+      fr: 'Maintenance planifiée en cours pour optimiser l’infrastructure de jeu. Les consultations restent accessibles.',
+      en: 'Scheduled maintenance is underway to optimize game infrastructure. Read access remains active.',
+    },
+    minXpReward: 25,
+    maxXpReward: 500,
+    maxFileUploadMb: 15,
+    defaultProofPolicy: 'optional',
+  });
 
   // Translation helper
   const t = (section: keyof typeof translations.fr, key: string, params?: Record<string, string | number>): string => {
@@ -175,36 +224,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return text;
   };
 
+  // Real-time listener for System Settings
+  useEffect(() => {
+    const unsub = onSnapshot(
+      doc(db, 'systemSettings', 'config'),
+      (snap) => {
+        if (snap.exists()) {
+          setSystemSettings((prev) => ({ ...prev, ...(snap.data() as SystemSettings) }));
+        }
+      },
+      (err) => console.warn('System settings listener notice:', err.message)
+    );
+    return () => unsub();
+  }, []);
+
   // 1. Listen for Firebase Auth changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
+        const isAdminEmail = user.email?.trim().toLowerCase() === 'archemis.ai@gmail.com';
         try {
+          if (isAdminEmail) {
+            // Guarantee admin doc exists in admins collection
+            await setDoc(
+              doc(db, 'admins', user.uid),
+              {
+                uid: user.uid,
+                email: user.email,
+                role: 'admin',
+                certifiedAt: new Date().toISOString(),
+              },
+              { merge: true }
+            );
+          }
+
           const userDocRef = doc(db, 'users', user.uid);
           const snap = await getDoc(userDocRef);
           if (snap.exists()) {
             const data = snap.data() as UserProfile;
-            setCurrentUser(data);
+            if (isAdminEmail) {
+              const updatedData: UserProfile = {
+                ...data,
+                displayName: 'LootsyCreator',
+                role: 'admin',
+                isVerified: true,
+                badges: Array.from(new Set([...(data.badges || []), 'creator' as UserBadge])),
+                accountStatus: 'active',
+              };
+              if (
+                data.role !== 'admin' ||
+                !data.isVerified ||
+                !data.badges?.includes('creator') ||
+                data.displayName !== 'LootsyCreator'
+              ) {
+                await updateDoc(userDocRef, {
+                  displayName: 'LootsyCreator',
+                  role: 'admin',
+                  isVerified: true,
+                  badges: updatedData.badges,
+                  accountStatus: 'active',
+                });
+              }
+              setCurrentUser(updatedData);
+            } else {
+              setCurrentUser(data);
+            }
           } else {
             // Check if user is in trusted admin collection
             const adminDocRef = doc(db, 'admins', user.uid);
             const adminSnap = await getDoc(adminDocRef);
-            const isAdmin = adminSnap.exists();
+            const isAdmin = adminSnap.exists() || isAdminEmail;
 
             // Create initial profile for newly authenticated user
             const newProfile: UserProfile = {
               uid: user.uid,
               email: user.email || '',
-              displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'Player'),
+              displayName: isAdminEmail
+                ? 'LootsyCreator'
+                : user.displayName || (user.email ? user.email.split('@')[0] : 'Player'),
               preferredLanguage: language,
-              interests: [],
+              interests: ['seasons', 'weapons', 'map'],
               role: isAdmin ? 'admin' : 'user',
               isVerified: isAdmin,
+              badges: isAdminEmail ? ['creator'] : [],
               accountStatus: 'active',
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
-              onboardingCompleted: false,
+              onboardingCompleted: true,
               xp: 0,
               privacySettings: {
                 profileVisibility: 'public_in_groups',
@@ -294,10 +401,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // B. Groups (All groups visible to user)
     const groupsUnsub = onSnapshot(
       collection(db, 'groups'),
-      (snapshot) => {
+      async (snapshot) => {
         const grps: Group[] = [];
         snapshot.forEach((d) => grps.push({ id: d.id, ...d.data() } as Group));
         setGroups(grps);
+
+        // Fetch invites & members for groups
+        for (const g of grps) {
+          try {
+            const invSnap = await getDocs(collection(db, 'groups', g.id, 'invites'));
+            const invs: GroupInvite[] = [];
+            invSnap.forEach((d) => invs.push({ id: d.id, ...d.data() } as GroupInvite));
+            if (invs.length > 0) {
+              setGroupInvites((prev) => [
+                ...prev.filter((i) => i.groupId !== g.id),
+                ...invs,
+              ]);
+            }
+
+            const memSnap = await getDocs(collection(db, 'groups', g.id, 'members'));
+            const mems: GroupMember[] = [];
+            memSnap.forEach((d) => mems.push({ id: d.id, groupId: g.id, ...d.data() } as unknown as GroupMember));
+            if (mems.length > 0) {
+              setGroupMembers((prev) => [
+                ...prev.filter((m) => !(g.memberUids || []).includes(m.uid)),
+                ...mems,
+              ]);
+            }
+          } catch (e) {
+            console.warn('Subcollection load warning:', e);
+          }
+        }
       },
       (err) => console.warn('Groups warning:', err.message)
     );
@@ -305,10 +439,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // C. Challenges
     const challengesUnsub = onSnapshot(
       collection(db, 'challenges'),
-      (snapshot) => {
+      async (snapshot) => {
         const chs: Challenge[] = [];
         snapshot.forEach((d) => chs.push({ id: d.id, ...d.data() } as Challenge));
         setChallenges(chs);
+
+        for (const c of chs) {
+          try {
+            const partSnap = await getDocs(collection(db, 'challenges', c.id, 'participants'));
+            const parts: ChallengeParticipant[] = [];
+            partSnap.forEach((d) => parts.push({ ...d.data() } as ChallengeParticipant));
+            if (parts.length > 0) {
+              setParticipants((prev) => [
+                ...prev.filter((p) => p.challengeId !== c.id),
+                ...parts,
+              ]);
+            }
+          } catch (e) {
+            console.warn('Participants load warning:', e);
+          }
+        }
       },
       (err) => console.warn('Challenges warning:', err.message)
     );
@@ -529,9 +679,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const safeUpdates = { ...updates };
       delete (safeUpdates as any).role;
       delete (safeUpdates as any).isVerified;
-      safeUpdates.updatedAt = new Date().toISOString();
-
       await updateDoc(doc(db, 'users', currentUser.uid), safeUpdates);
+      setCurrentUser((prev) => (prev ? ({ ...prev, ...safeUpdates } as UserProfile) : null));
     } catch (err: any) {
       console.error('updateProfile error:', err);
       setFirebaseError(err.message);
@@ -642,8 +791,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Create owner member document in subcollection
       const memberId = `${groupId}_${currentUser.uid}`;
-      const memberData: GroupMember = {
+      const memberData: any = {
         uid: currentUser.uid,
+        userUid: currentUser.uid,
         role: 'owner',
         joinedAt: new Date().toISOString(),
         status: 'active',
@@ -653,16 +803,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Generate initial invite code
       const code = generateInviteCode();
-      const inviteData: GroupInvite = {
+      const inviteData: any = {
         id: `inv-${Date.now()}`,
         code,
         groupId,
         createdBy: currentUser.uid,
+        createdByUid: currentUser.uid,
         createdAt: new Date().toISOString(),
         status: 'active',
         usesCount: 0,
       };
       await setDoc(doc(db, 'groups', groupId, 'invites', inviteData.id), inviteData);
+
+      // Update local state immediately so UI and active invite render without lag
+      setGroups((prev) => [newGroup, ...prev.filter((g) => g.id !== newGroup.id)]);
+      setGroupMembers((prev) => [memberData, ...prev.filter((m) => m.uid !== memberData.uid)]);
+      setGroupInvites((prev) => [inviteData, ...prev.filter((i) => i.id !== inviteData.id)]);
 
       return { success: true, group: newGroup };
     } catch (err: any) {
@@ -694,8 +850,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Add user to members
       const memberId = `${targetGroup.id}_${currentUser.uid}`;
-      const memberData: GroupMember = {
+      const memberData: any = {
         uid: currentUser.uid,
+        userUid: currentUser.uid,
         role: 'member',
         joinedAt: new Date().toISOString(),
         status: 'active',
@@ -710,6 +867,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         memberCount: updatedUids.length,
         updatedAt: new Date().toISOString(),
       });
+
+      setGroupMembers((prev) => [memberData, ...prev.filter((m) => !(targetGroup && targetGroup.id === m.groupId && m.uid === memberData.uid))]);
 
       return { success: true, group: targetGroup };
     } catch (err: any) {
@@ -728,6 +887,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             status: 'revoked',
             revokedAt: new Date().toISOString(),
           });
+          setGroupInvites((prev) =>
+            prev.map((inv) => (inv.id === inviteId ? { ...inv, status: 'revoked' } : inv))
+          );
           break;
         }
       }
@@ -740,16 +902,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!currentUser) return '';
     try {
       const code = generateInviteCode();
-      const inviteData: GroupInvite = {
+      const inviteData: any = {
         id: `inv-${Date.now()}`,
         code,
         groupId,
         createdBy: currentUser.uid,
+        createdByUid: currentUser.uid,
         createdAt: new Date().toISOString(),
         status: 'active',
         usesCount: 0,
       };
       await setDoc(doc(db, 'groups', groupId, 'invites', inviteData.id), inviteData);
+      setGroupInvites((prev) => [
+        inviteData,
+        ...prev.filter((i) => !(i.groupId === groupId && i.status === 'active')),
+      ]);
       return code;
     } catch (err) {
       console.error('regenerateInvite error:', err);

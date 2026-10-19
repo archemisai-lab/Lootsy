@@ -58,19 +58,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ navigate }) => {
             {t('home', 'ctaDiscoverRadar')}
           </button>
         </div>
-
-        {/* Emblem Hero Visual */}
-        <div className="pt-8 flex justify-center">
-          <div className="p-8 rounded-2xl bg-[#1c1816] border border-[#302923]/80 shadow-2xl relative max-w-md w-full">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <LootsyLogo size={88} withBackground={false} />
-              <div className="text-xs text-[#B5AA9C] space-y-1">
-                <p className="font-semibold text-[#F6F0E7]">L’emblème officiel Lootsy</p>
-                <p>Cercle ivoire et barre diagonale orange sur fond obsidian.</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* 2. Three Core Pillars */}

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { calculateLevelFromXp } from '../../utils/rules';
 import { StatusBadge } from '../../components/StatusBadge';
+import { UserBadgeTag } from '../../components/UserBadgeTag';
+import { AvatarCropModal } from '../../components/AvatarCropModal';
 import {
   User,
   Award,
@@ -12,6 +14,8 @@ import {
   Calendar,
   Shield,
   FileCheck2,
+  Camera,
+  Check,
 } from 'lucide-react';
 
 interface ProfileViewProps {
@@ -19,7 +23,11 @@ interface ProfileViewProps {
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ navigate }) => {
-  const { currentUser, groups, participants, ledger, logout, language } = useApp();
+  const { currentUser, updateProfile, groups, participants, ledger, logout, language } = useApp();
+
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [avatarSaveMessage, setAvatarSaveMessage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!currentUser) return null;
 
@@ -35,27 +43,95 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ navigate }) => {
     (p) => p.uid === currentUser.uid && p.status === 'completed_unverified'
   ).length;
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImageSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedDataUrl: string) => {
+    setCropImageSrc(null);
+    await updateProfile({ photoURL: croppedDataUrl });
+    setAvatarSaveMessage(true);
+    setTimeout(() => setAvatarSaveMessage(false), 3000);
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      {/* Hidden file input for Avatar */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
       {/* Profile Card Header */}
       <div className="p-6 sm:p-8 rounded-2xl bg-[#1e1a17] border border-[#302923] flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-[#302923] border border-[#FF6538]/40 flex items-center justify-center text-2xl font-display text-[#F6F0E7] tracking-wider">
-            {currentUser.displayName.charAt(0).toUpperCase()}
+          {/* Avatar with Camera upload trigger */}
+          <div className="relative group shrink-0">
+            {currentUser.photoURL ? (
+              <img
+                src={currentUser.photoURL}
+                alt={currentUser.displayName}
+                className="w-16 h-16 rounded-full object-cover border-2 border-[#FF6538]/60 shadow-lg"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[#302923] border border-[#FF6538]/40 flex items-center justify-center text-2xl font-display text-[#F6F0E7] tracking-wider">
+                {currentUser.displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#FF6538] hover:bg-[#ff7a53] text-white shadow-md transition-transform hover:scale-110 cursor-pointer"
+              title={language === 'fr' ? 'Changer la photo de profil' : 'Change profile photo'}
+              aria-label="Upload profile photo"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-extrabold text-[#F6F0E7] tracking-tight">
                 {currentUser.displayName}
               </h1>
+
+              {/* Creator Certified Blue Badge & Other Badges */}
+              {(currentUser.badges?.includes('creator') || currentUser.displayName === 'LootsyCreator' || currentUser.role === 'admin') && (
+                <UserBadgeTag badge="creator" size="sm" showLabel={true} />
+              )}
+              {currentUser.badges?.filter((b) => b !== 'creator').map((badge) => (
+                <UserBadgeTag key={badge} badge={badge} size="sm" />
+              ))}
+
               <StatusBadge status={currentUser.role} language={language} />
             </div>
 
             <p className="text-xs text-[#B5AA9C] flex items-center gap-1.5 font-normal">
               <Calendar className="w-3.5 h-3.5" />
-              <span>Membre depuis le {new Date(currentUser.createdAt).toLocaleDateString()}</span>
+              <span>
+                {language === 'fr' ? 'Membre depuis le' : 'Member since'}{' '}
+                {new Date(currentUser.createdAt).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
+              </span>
             </p>
+
+            {avatarSaveMessage && (
+              <span className="text-[11px] text-[#D8E5B0] font-semibold flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                <span>{language === 'fr' ? 'Photo de profil mise à jour !' : 'Profile photo updated!'}</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -65,17 +141,27 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ navigate }) => {
             className="px-3.5 py-2 rounded-lg bg-[#25201c] hover:bg-[#302923] border border-[#302923] text-xs font-bold text-[#F6F0E7] inline-flex items-center gap-1.5 transition-colors"
           >
             <Settings className="w-3.5 h-3.5" />
-            <span>Paramètres</span>
+            <span>{language === 'fr' ? 'Paramètres' : 'Settings'}</span>
           </button>
           <button
             onClick={logout}
             className="px-3.5 py-2 rounded-lg bg-[#25201c] hover:bg-rose-950/40 text-rose-300 border border-[#302923] text-xs font-bold inline-flex items-center gap-1.5 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Déconnexion</span>
+            <span>{language === 'fr' ? 'Déconnexion' : 'Sign out'}</span>
           </button>
         </div>
       </div>
+
+      {/* Cropping Modal */}
+      {cropImageSrc && (
+        <AvatarCropModal
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+          onClose={() => setCropImageSrc(null)}
+          language={language}
+        />
+      )}
 
       {/* Level & XP Progression Card */}
       <div className="p-6 rounded-2xl bg-[#1e1a17] border border-[#302923] space-y-4">

@@ -175,9 +175,17 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate }) => {
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                   className="flex items-center gap-2 p-1.5 pr-2.5 rounded-lg bg-[#302923]/70 hover:bg-[#302923] border border-[#302923] text-left transition-colors"
                 >
-                  <div className="w-6 h-6 rounded-md bg-[#171513] border border-[#B5AA9C]/30 flex items-center justify-center text-xs font-bold text-[#F6F0E7]">
-                    {currentUser.displayName.charAt(0).toUpperCase()}
-                  </div>
+                  {currentUser.photoURL ? (
+                    <img
+                      src={currentUser.photoURL}
+                      alt={currentUser.displayName}
+                      className="w-6 h-6 rounded-md object-cover border border-[#B5AA9C]/30 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-md bg-[#171513] border border-[#B5AA9C]/30 flex items-center justify-center text-xs font-bold text-[#F6F0E7] shrink-0">
+                      {currentUser.displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <span className="text-xs font-medium text-[#F6F0E7] max-w-[110px] truncate flex items-center gap-1">
                     {currentUser.displayName}
                     {currentUser.isVerified && (
@@ -312,9 +320,17 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate }) => {
             <>
               {/* User Identity Header Card */}
               <div className="flex items-center gap-3 p-3 rounded-lg bg-[#1f1b18] border border-[#302923] mb-3">
-                <div className="w-8 h-8 rounded-md bg-[#171513] border border-[#B5AA9C]/30 flex items-center justify-center text-xs font-bold text-[#F6F0E7] shrink-0">
-                  {currentUser.displayName.charAt(0).toUpperCase()}
-                </div>
+                {currentUser.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName}
+                    className="w-8 h-8 rounded-md object-cover border border-[#B5AA9C]/30 shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-md bg-[#171513] border border-[#B5AA9C]/30 flex items-center justify-center text-xs font-bold text-[#F6F0E7] shrink-0">
+                    {currentUser.displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-[#F6F0E7] truncate flex items-center gap-1.5">
                     <span>{currentUser.displayName}</span>
