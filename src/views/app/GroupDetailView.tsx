@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../../components/StatusBadge';
+import { VerifiedBadge } from '../../components/VerifiedBadge';
 import {
   Users,
   Trophy,
@@ -340,8 +341,11 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, navig
                     </div>
                   )}
                   <div>
-                    <span className="text-xs font-bold text-[#F6F0E7] block">
-                      {m.displayName}
+                    <span className="text-xs font-bold text-[#F6F0E7] flex items-center gap-1.5">
+                      <span>{m.displayName}</span>
+                      {((currentUser && m.uid === currentUser.uid && currentUser.isVerified) || m.displayName === 'LootsyCreator') && (
+                        <VerifiedBadge size="xs" variant="blue" title="Compte certifié officiel" />
+                      )}
                     </span>
                     <span className="text-[11px] text-[#B5AA9C]">
                       Membre depuis le {new Date(m.joinedAt).toLocaleDateString()}

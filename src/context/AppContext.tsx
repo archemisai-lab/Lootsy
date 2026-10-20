@@ -133,6 +133,7 @@ interface AppContextType {
   adminUpdateGroup: (groupId: string, updates: Partial<Group>, reason: string) => Promise<{ success: boolean; error?: string }>;
   adminArchiveGroup: (groupId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
   adminDeleteGroup: (groupId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  adminRestoreGroup: (groupId: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
   adminTransferGroupOwnership: (groupId: string, newOwnerUid: string, reason: string) => Promise<{ success: boolean; error?: string }>;
   adminAddUserToGroup: (groupId: string, targetUid: string, role?: GroupMember['role']) => Promise<{ success: boolean; error?: string }>;
   adminRemoveUserFromGroup: (groupId: string, targetUid: string, reason: string) => Promise<{ success: boolean; error?: string }>;
@@ -1656,8 +1657,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
     if (!reason.trim()) return { success: false, error: 'Un motif écrit est obligatoire pour supprimer un groupe.' };
     try {
-      await updateDoc(doc(db, 'groups', groupId), { status: 'deleted', updatedAt: new Date().toISOString() });
+      const updatedAt = new Date().toISOString();
+      await updateDoc(doc(db, 'groups', groupId), { status: 'deleted', updatedAt });
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, status: 'deleted', updatedAt } : g)));
       await recordAuditLog('ADMIN_DELETE_GROUP', 'GROUP', groupId, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminRestoreGroup = async (groupId: string, reason: string = 'Restauration administrative') => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const updatedAt = new Date().toISOString();
+      await updateDoc(doc(db, 'groups', groupId), { status: 'active', updatedAt });
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, status: 'active', updatedAt } : g)));
+      await recordAuditLog('ADMIN_RESTORE_GROUP', 'GROUP', groupId, { reason });
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -1972,12 +1988,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
     if (!reason.trim()) return { success: false, error: 'Un motif est requis pour suspendre un compte.' };
     try {
+      const updatedAt = new Date().toISOString();
       await updateDoc(doc(db, 'users', targetUid), {
         accountStatus: 'suspended',
         suspensionUntil: untilDate,
         suspensionReason: reason,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
       });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.uid === targetUid
+            ? {
+                ...u,
+                accountStatus: 'suspended',
+                suspensionUntil: untilDate,
+                suspensionReason: reason,
+                updatedAt,
+              }
+            : u
+        )
+      );
       // Send notification
       const notifId = `notif-${Date.now()}`;
       await setDoc(doc(db, 'notifications', notifId), {
@@ -2004,12 +2034,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
     if (!reason.trim()) return { success: false, error: 'Un motif écrit est requis pour bannir définitivement un joueur.' };
     try {
+      const updatedAt = new Date().toISOString();
+      const bannedAt = updatedAt;
       await updateDoc(doc(db, 'users', targetUid), {
         accountStatus: 'banned',
-        bannedAt: new Date().toISOString(),
+        bannedAt,
         banReason: reason,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
       });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.uid === targetUid
+            ? {
+                ...u,
+                accountStatus: 'banned',
+                bannedAt,
+                banReason: reason,
+                updatedAt,
+              }
+            : u
+        )
+      );
       await recordAuditLog('ADMIN_BAN_USER', 'USER', targetUid, { reason });
       return { success: true };
     } catch (err: any) {
@@ -2020,14 +2065,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const adminReactivateUser = async (targetUid: string, reason: string) => {
     if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
     try {
+      const updatedAt = new Date().toISOString();
       await updateDoc(doc(db, 'users', targetUid), {
         accountStatus: 'active',
         suspensionUntil: null,
         suspensionReason: null,
         banReason: null,
         bannedAt: null,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
       });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.uid === targetUid
+            ? {
+                ...u,
+                accountStatus: 'active',
+                suspensionUntil: null,
+                suspensionReason: null,
+                banReason: null,
+                bannedAt: null,
+                updatedAt,
+              }
+            : u
+        )
+      );
       await recordAuditLog('ADMIN_REACTIVATE_USER', 'USER', targetUid, { reason });
       return { success: true };
     } catch (err: any) {
@@ -2194,6 +2255,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         adminUpdateGroup,
         adminArchiveGroup,
         adminDeleteGroup,
+        adminRestoreGroup,
         adminTransferGroupOwnership,
         adminAddUserToGroup,
         adminRemoveUserFromGroup,

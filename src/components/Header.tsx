@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { LootsyLogo } from './LootsyLogo';
 import { Menu, X, Bell, Shield, User, LogIn, LogOut, ChevronDown } from 'lucide-react';
+import { VerifiedBadge } from './VerifiedBadge';
 
 interface HeaderProps {
   currentRoute: string;
@@ -186,10 +187,10 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate }) => {
                       {currentUser.displayName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="text-xs font-medium text-[#F6F0E7] max-w-[110px] truncate flex items-center gap-1">
-                    {currentUser.displayName}
+                  <span className="text-xs font-medium text-[#F6F0E7] max-w-[120px] truncate flex items-center gap-1.5">
+                    <span className="truncate">{currentUser.displayName}</span>
                     {currentUser.isVerified && (
-                      <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-blue-500 text-white text-[9px] font-bold" title="Compte vérifié">✓</span>
+                      <VerifiedBadge size="xs" variant="blue" title="Compte certifié officiel" />
                     )}
                   </span>
                   <ChevronDown className="w-3 h-3 text-[#B5AA9C]" />
@@ -335,7 +336,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate }) => {
                   <div className="text-sm font-semibold text-[#F6F0E7] truncate flex items-center gap-1.5">
                     <span>{currentUser.displayName}</span>
                     {currentUser.isVerified && (
-                      <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-blue-500 text-white text-[9px] font-bold" title="Compte vérifié">✓</span>
+                      <VerifiedBadge size="sm" variant="blue" title="Compte certifié officiel" />
                     )}
                   </div>
                   <div className="text-xs text-[#B5AA9C] truncate">{currentUser.email}</div>

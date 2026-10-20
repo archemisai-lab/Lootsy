@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { calculateLevelFromXp } from '../../utils/rules';
 import { StatusBadge } from '../../components/StatusBadge';
 import { UserBadgeTag } from '../../components/UserBadgeTag';
+import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { AvatarCropModal } from '../../components/AvatarCropModal';
 import {
   User,
@@ -102,9 +103,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ navigate }) => {
           </div>
 
           <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-[#F6F0E7] tracking-tight">
-                {currentUser.displayName}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-[#F6F0E7] tracking-tight flex items-center gap-2">
+                <span>{currentUser.displayName}</span>
+                {currentUser.isVerified && (
+                  <VerifiedBadge size="md" variant="blue" title="Compte certifié officiel" />
+                )}
               </h1>
 
               {/* Creator Certified Blue Badge & Other Badges */}

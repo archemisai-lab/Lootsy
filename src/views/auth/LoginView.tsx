@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { LootsyLogo } from '../../components/LootsyLogo';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
+import { VerifiedBadge } from '../../components/VerifiedBadge';
 
 interface LoginViewProps {
   navigate: (route: string) => void;
@@ -192,9 +193,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ navigate }) => {
               }}
               className="w-full py-2.5 px-3 rounded-lg bg-[#141820] hover:bg-[#1a202c] border border-blue-500/40 text-blue-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:border-blue-400"
             >
-              <span className="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px] font-extrabold shadow-sm">
-                ✓
-              </span>
+              <VerifiedBadge size="sm" variant="blue" showTooltip={false} />
               <span>Connexion Compte Créateur Officiel (LootsyCreator)</span>
             </button>
           </div>

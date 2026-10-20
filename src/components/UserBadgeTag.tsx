@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserBadge } from '../types';
-import { Check, Shield, Sparkles, Award, Heart, Clock } from 'lucide-react';
+import { Shield, Sparkles, Award, Heart, Clock } from 'lucide-react';
+import { VerifiedBadge } from './VerifiedBadge';
 
 interface UserBadgeTagProps {
   badge: UserBadge;
@@ -12,15 +13,13 @@ export const UserBadgeTag: React.FC<UserBadgeTagProps> = ({ badge, size = 'sm', 
   if (badge === 'creator') {
     return (
       <span
-        className={`inline-flex items-center gap-1 font-bold rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 ${
+        className={`inline-flex items-center gap-1.5 font-bold rounded-full bg-[#1A2E46] text-[#60A5FA] border border-[#2563EB]/40 shadow-xs ${
           size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
         }`}
         title="Badge Officiel : Créateur Certifié Lootsy"
       >
-        <span className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[8px] font-extrabold shrink-0 shadow-sm shadow-blue-500/50">
-          ✓
-        </span>
-        {showLabel && <span>Créateur</span>}
+        <VerifiedBadge size={size === 'sm' ? 'xs' : 'sm'} variant="blue" showTooltip={false} />
+        {showLabel && <span className="tracking-wide">Créateur</span>}
       </span>
     );
   }

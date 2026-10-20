@@ -11,6 +11,7 @@ import {
   Challenge,
 } from '../../types';
 import { UserBadgeTag } from '../../components/UserBadgeTag';
+import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { StatusBadge } from '../../components/StatusBadge';
 import {
   Shield,
@@ -897,7 +898,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ navigate }) => {
                 <div key={u.uid} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-extrabold text-[#F6F0E7] text-sm">{u.displayName}</span>
+                      <span className="font-extrabold text-[#F6F0E7] text-sm flex items-center gap-1.5">
+                        <span>{u.displayName}</span>
+                        {u.isVerified && (
+                          <VerifiedBadge size="xs" variant="blue" title="Compte certifié" />
+                        )}
+                      </span>
                       {u.badges?.map((b) => (
                         <UserBadgeTag key={b} badge={b} size="sm" />
                       ))}
@@ -1451,7 +1457,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ navigate }) => {
             <div className="p-4 rounded-xl bg-[#171513] border border-[#302923] space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[#B5AA9C]">Nom d’affichage :</span>
-                <span className="font-bold text-[#F6F0E7]">{selectedUser.displayName}</span>
+                <span className="font-bold text-[#F6F0E7] flex items-center gap-1.5">
+                  <span>{selectedUser.displayName}</span>
+                  {selectedUser.isVerified && (
+                    <VerifiedBadge size="xs" variant="blue" title="Compte certifié officiel" />
+                  )}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#B5AA9C]">Email (Confidentiel) :</span>
