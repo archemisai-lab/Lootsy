@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { LootsyLogo } from '../../components/LootsyLogo';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
@@ -8,12 +8,19 @@ interface LoginViewProps {
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ navigate }) => {
-  const { login, loginWithGoogle, t, firebaseError } = useApp();
+  const { currentUser, login, loginWithGoogle, t, firebaseError } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // If already authenticated or just completed, immediately redirect to app
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/app');
+    }
+  }, [currentUser, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

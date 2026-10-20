@@ -179,10 +179,10 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate }) => {
                     <img
                       src={currentUser.photoURL}
                       alt={currentUser.displayName}
-                      className="w-6 h-6 rounded-md object-cover border border-[#B5AA9C]/30 shrink-0"
+                      className="w-6 h-6 rounded-full object-cover border border-[#B5AA9C]/30 shrink-0"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-md bg-[#171513] border border-[#B5AA9C]/30 flex items-center justify-center text-xs font-bold text-[#F6F0E7] shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#171513] border border-[#B5AA9C]/30 flex items-center justify-center text-xs font-bold text-[#F6F0E7] shrink-0">
                       {currentUser.displayName.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -324,10 +324,10 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate }) => {
                   <img
                     src={currentUser.photoURL}
                     alt={currentUser.displayName}
-                    className="w-8 h-8 rounded-md object-cover border border-[#B5AA9C]/30 shrink-0"
+                    className="w-8 h-8 rounded-full object-cover border border-[#B5AA9C]/30 shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-md bg-[#171513] border border-[#B5AA9C]/30 flex items-center justify-center text-xs font-bold text-[#F6F0E7] shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#171513] border border-[#B5AA9C]/30 flex items-center justify-center text-xs font-bold text-[#F6F0E7] shrink-0">
                     {currentUser.displayName.charAt(0).toUpperCase()}
                   </div>
                 )}

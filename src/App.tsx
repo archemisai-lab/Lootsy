@@ -36,7 +36,7 @@ import { SettingsView } from './views/app/SettingsView';
 import { AdminView } from './views/admin/AdminView';
 
 const AppContent: React.FC = () => {
-  const { currentUser, authLoading, firebaseError, clearFirebaseError } = useApp();
+  const { currentUser, firebaseUser, authLoading, firebaseError, clearFirebaseError } = useApp();
 
   // Route state initialized from window.location.pathname or hash
   const [route, setRoute] = useState<string>(() => {
@@ -65,10 +65,10 @@ const AppContent: React.FC = () => {
 
   // Protect /app and /admin routes once auth is resolved
   useEffect(() => {
-    if (!authLoading && !currentUser && (route.startsWith('/app') || route.startsWith('/admin'))) {
+    if (!authLoading && !firebaseUser && !currentUser && (route.startsWith('/app') || route.startsWith('/admin'))) {
       navigate('/login');
     }
-  }, [currentUser, authLoading, route]);
+  }, [currentUser, firebaseUser, authLoading, route]);
 
   // Route Dispatcher
   const renderView = () => {
@@ -187,7 +187,7 @@ const AppContent: React.FC = () => {
     );
   };
 
-  if (authLoading) {
+  if (authLoading || (firebaseUser && !currentUser && (route.startsWith('/app') || route.startsWith('/admin')))) {
     return (
       <div className="min-h-screen bg-[#171513] text-[#F6F0E7] flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 rounded-full border-2 border-[#FF6538] border-t-transparent animate-spin" />

@@ -171,6 +171,7 @@ export interface ProofItem {
 }
 
 export interface ChallengeParticipant {
+  id?: string;
   uid: string;
   challengeId: string;
   status: ParticipantStatus;
@@ -184,6 +185,8 @@ export interface ChallengeParticipant {
   xpAwarded: number;
   xpAwardedAt?: string;
   proof?: ProofItem;
+  proofUrl?: string;
+  notes?: string;
   updatedAt: string;
 }
 
@@ -225,6 +228,7 @@ export interface AppNotification {
 export interface XpLedgerEntry {
   id: string;
   uid: string;
+  userUid?: string;
   challengeId: string;
   groupId: string;
   reason: string;

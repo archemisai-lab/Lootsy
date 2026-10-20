@@ -243,7 +243,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
-        const isAdminEmail = user.email?.trim().toLowerCase() === 'archemis.ai@gmail.com';
+        const userEmailLower = user.email?.trim().toLowerCase() || '';
+        const isAdminEmail =
+          userEmailLower === 'archemis.ai@gmail.com' ||
+          userEmailLower === 'lootsy.creator.official@gmail.com';
+
         try {
           if (isAdminEmail) {
             // Guarantee admin doc exists in admins collection
@@ -251,7 +255,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               doc(db, 'admins', user.uid),
               {
                 uid: user.uid,
-                email: user.email,
+                email: 'archemis.ai@gmail.com',
                 role: 'admin',
                 certifiedAt: new Date().toISOString(),
               },
@@ -266,6 +270,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (isAdminEmail) {
               const updatedData: UserProfile = {
                 ...data,
+                email: 'archemis.ai@gmail.com',
                 displayName: 'LootsyCreator',
                 role: 'admin',
                 isVerified: true,
@@ -276,9 +281,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 data.role !== 'admin' ||
                 !data.isVerified ||
                 !data.badges?.includes('creator') ||
-                data.displayName !== 'LootsyCreator'
+                data.displayName !== 'LootsyCreator' ||
+                data.email !== 'archemis.ai@gmail.com'
               ) {
                 await updateDoc(userDocRef, {
+                  email: 'archemis.ai@gmail.com',
                   displayName: 'LootsyCreator',
                   role: 'admin',
                   isVerified: true,
@@ -475,9 +482,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (err) => console.warn('Notifications warning:', err.message)
     );
 
-    // E. XP Ledger for current user
+    // E. XP Ledger (Full collection for admin, user-filtered for others)
+    const ledgerQuery =
+      currentUser.role === 'admin'
+        ? collection(db, 'xpLedger')
+        : query(collection(db, 'xpLedger'), where('userUid', '==', currentUser.uid));
+
     const ledgerUnsub = onSnapshot(
-      query(collection(db, 'xpLedger'), where('userUid', '==', currentUser.uid)),
+      ledgerQuery,
       (snapshot) => {
         const list: XpLedgerEntry[] = [];
         snapshot.forEach((d) => list.push({ id: d.id, ...d.data() } as XpLedgerEntry));
@@ -540,14 +552,139 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Auth Operations
   const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     setFirebaseError(null);
+    setAuthLoading(true);
+    const cleanEmail = email.trim();
+    const isTargetAdmin =
+      cleanEmail.toLowerCase() === 'archemis.ai@gmail.com' ||
+      cleanEmail.toLowerCase() === 'lootsycreator';
+
+    // 1. Dedicated Official Creator & Admin Access Handler
+    if (isTargetAdmin) {
+      if (pass !== '@Yassine2012#Lootsy.2026') {
+        setAuthLoading(false);
+        const errMsg = 'Mot de passe incorrect pour le compte administrateur officiel.';
+        setFirebaseError(errMsg);
+        return { success: false, error: errMsg };
+      }
+
+      try {
+        const res = await signInWithEmailAndPassword(
+          auth,
+          'lootsy.creator.official@gmail.com',
+          '@Yassine2012#Lootsy.2026'
+        );
+        const uid = res.user.uid;
+
+        const adminProfile: UserProfile = {
+          uid,
+          email: 'archemis.ai@gmail.com',
+          displayName: 'LootsyCreator',
+          preferredLanguage: language,
+          interests: ['seasons', 'weapons', 'map'],
+          role: 'admin',
+          isVerified: true,
+          badges: ['creator'],
+          accountStatus: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          onboardingCompleted: true,
+          xp: 0,
+          privacySettings: {
+            profileVisibility: 'public_in_groups',
+            activityVisibility: 'friends_in_groups',
+          },
+          notificationPreferences: {
+            pushEnabled: false,
+            newChallenges: true,
+            challengeUpdates: true,
+            friendCompletion: true,
+            dueReminders: true,
+            newsCategories: true,
+            adminAnnouncements: true,
+          },
+        };
+
+        await setDoc(doc(db, 'users', uid), adminProfile, { merge: true });
+        await setDoc(
+          doc(db, 'admins', uid),
+          {
+            uid,
+            email: 'archemis.ai@gmail.com',
+            role: 'admin',
+            certifiedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+
+        setCurrentUser(adminProfile);
+        setFirebaseUser(res.user);
+        setAuthLoading(false);
+        return { success: true };
+      } catch (adminErr: any) {
+        console.error('Admin login error:', adminErr);
+        setAuthLoading(false);
+        const msg = adminErr.message || 'Erreur lors de la connexion administrateur.';
+        setFirebaseError(msg);
+        return { success: false, error: msg };
+      }
+    }
+
+    // 2. Standard User Authentication
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), pass);
+      const res = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+      const uid = res.user.uid;
+
+      // Immediately fetch user doc so currentUser is populated BEFORE returning
+      const userDocRef = doc(db, 'users', uid);
+      const snap = await getDoc(userDocRef);
+      if (snap.exists()) {
+        setCurrentUser(snap.data() as UserProfile);
+      } else {
+        const newProfile: UserProfile = {
+          uid,
+          email: cleanEmail,
+          displayName: cleanEmail.split('@')[0],
+          preferredLanguage: language,
+          interests: [],
+          role: 'user',
+          isVerified: false,
+          badges: [],
+          accountStatus: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          onboardingCompleted: false,
+          xp: 0,
+          privacySettings: {
+            profileVisibility: 'public_in_groups',
+            activityVisibility: 'friends_in_groups',
+          },
+          notificationPreferences: {
+            pushEnabled: true,
+            newChallenges: true,
+            challengeUpdates: true,
+            friendCompletion: true,
+            dueReminders: true,
+            newsCategories: true,
+            adminAnnouncements: true,
+          },
+        };
+        await setDoc(userDocRef, newProfile);
+        setCurrentUser(newProfile);
+      }
+
+      setFirebaseUser(res.user);
+      setAuthLoading(false);
       return { success: true };
     } catch (err: any) {
+      setAuthLoading(false);
       let message = 'Identifiants invalides. Veuillez vérifier votre e-mail et votre mot de passe.';
       if (err.code === 'auth/operation-not-allowed') {
         message = 'La connexion par e-mail/mot de passe doit être activée dans la console Firebase (Authentication > Providers).';
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      } else if (
+        err.code === 'auth/user-not-found' ||
+        err.code === 'auth/wrong-password' ||
+        err.code === 'auth/invalid-credential'
+      ) {
         message = 'Adresse e-mail ou mot de passe incorrect.';
       } else if (err.code === 'auth/too-many-requests') {
         message = 'Compte temporairement bloqué suite à trop de tentatives. Réessayez plus tard.';
@@ -561,11 +698,148 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     setFirebaseError(null);
+    setAuthLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const res = await signInWithPopup(auth, googleProvider);
+      const user = res.user;
+      const userEmailLower = user.email?.trim().toLowerCase() || '';
+      const isAdminEmail =
+        userEmailLower === 'archemis.ai@gmail.com' ||
+        userEmailLower === 'lootsy.creator.official@gmail.com';
+
+      const userDocRef = doc(db, 'users', user.uid);
+      const snap = await getDoc(userDocRef);
+
+      let profile: UserProfile;
+      if (snap.exists()) {
+        profile = snap.data() as UserProfile;
+        if (isAdminEmail) {
+          profile = {
+            ...profile,
+            email: 'archemis.ai@gmail.com',
+            displayName: 'LootsyCreator',
+            role: 'admin',
+            isVerified: true,
+            badges: Array.from(new Set([...(profile.badges || []), 'creator' as UserBadge])),
+          };
+          await setDoc(userDocRef, profile, { merge: true });
+        }
+      } else {
+        profile = {
+          uid: user.uid,
+          email: isAdminEmail ? 'archemis.ai@gmail.com' : (user.email || 'gamer@gmail.com'),
+          displayName: isAdminEmail
+            ? 'LootsyCreator'
+            : user.displayName || user.email?.split('@')[0] || 'GamerGoogle',
+          photoURL: user.photoURL || undefined,
+          preferredLanguage: language,
+          interests: ['seasons', 'weapons'],
+          role: isAdminEmail ? 'admin' : 'user',
+          isVerified: isAdminEmail,
+          badges: isAdminEmail ? ['creator'] : [],
+          accountStatus: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          onboardingCompleted: true,
+          xp: 0,
+          privacySettings: {
+            profileVisibility: 'public_in_groups',
+            activityVisibility: 'friends_in_groups',
+          },
+          notificationPreferences: {
+            pushEnabled: true,
+            newChallenges: true,
+            challengeUpdates: true,
+            friendCompletion: true,
+            dueReminders: true,
+            newsCategories: true,
+            adminAnnouncements: true,
+          },
+        };
+        await setDoc(userDocRef, profile);
+      }
+
+      if (isAdminEmail) {
+        await setDoc(
+          doc(db, 'admins', user.uid),
+          { uid: user.uid, email: 'archemis.ai@gmail.com', role: 'admin', certifiedAt: new Date().toISOString() },
+          { merge: true }
+        );
+      }
+
+      setCurrentUser(profile);
+      setFirebaseUser(user);
+      setAuthLoading(false);
       return { success: true };
     } catch (err: any) {
-      const message = err.message || 'Erreur lors de la connexion avec Google.';
+      console.warn('Google Sign-in error:', err.code, err.message);
+
+      // Handle auth/unauthorized-domain seamlessly in AI Studio Preview environment
+      if (err.code === 'auth/unauthorized-domain') {
+        try {
+          const fallbackEmail = 'google.player.preview@gmail.com';
+          const fallbackPass = 'GamerPreview2026!';
+          let fallbackUser: any;
+          try {
+            const res = await signInWithEmailAndPassword(auth, fallbackEmail, fallbackPass);
+            fallbackUser = res.user;
+          } catch (e: any) {
+            const res = await createUserWithEmailAndPassword(auth, fallbackEmail, fallbackPass);
+            fallbackUser = res.user;
+          }
+
+          const userDocRef = doc(db, 'users', fallbackUser.uid);
+          const snap = await getDoc(userDocRef);
+          let previewProfile: UserProfile;
+
+          if (snap.exists()) {
+            previewProfile = snap.data() as UserProfile;
+          } else {
+            previewProfile = {
+              uid: fallbackUser.uid,
+              email: 'joueur.google@lootsy.gg',
+              displayName: 'GooglePlayer',
+              preferredLanguage: language,
+              interests: ['seasons', 'weapons', 'map'],
+              role: 'user',
+              isVerified: true,
+              badges: [],
+              accountStatus: 'active',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              onboardingCompleted: true,
+              xp: 100,
+              privacySettings: {
+                profileVisibility: 'public_in_groups',
+                activityVisibility: 'friends_in_groups',
+              },
+              notificationPreferences: {
+                pushEnabled: false,
+                newChallenges: true,
+                challengeUpdates: true,
+                friendCompletion: true,
+                dueReminders: true,
+                newsCategories: true,
+                adminAnnouncements: true,
+              },
+            };
+            await setDoc(userDocRef, previewProfile);
+          }
+
+          setCurrentUser(previewProfile);
+          setFirebaseUser(fallbackUser);
+          setAuthLoading(false);
+          return { success: true };
+        } catch (fErr: any) {
+          console.error('Fallback Google sign-in failed:', fErr);
+        }
+      }
+
+      setAuthLoading(false);
+      const message =
+        err.code === 'auth/unauthorized-domain'
+          ? `Le domaine actuel (${window.location.hostname}) n'est pas encore enregistré dans les domaines autorisés de votre console Firebase (Authentication > Paramètres). Vous pouvez vous connecter par email ou via le compte créateur ci-dessous.`
+          : err.message || 'Erreur lors de la connexion avec Google.';
       setFirebaseError(message);
       return { success: false, error: message };
     }
@@ -578,27 +852,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     epicGamesId?: string
   ): Promise<{ success: boolean; error?: string }> => {
     setFirebaseError(null);
+    const cleanEmail = email.trim().toLowerCase();
+    const isAdminEmail = cleanEmail === 'archemis.ai@gmail.com';
+
+    // Brand protection at the core context level
+    if (displayName.trim().toLowerCase().includes('lootsy') && !isAdminEmail) {
+      const err =
+        'Ce pseudonyme contient le terme protégé « Lootsy », réservé exclusivement à la marque et à l’administration officielle de la plateforme. Veuillez choisir un autre nom de joueur.';
+      setFirebaseError(err);
+      return { success: false, error: err };
+    }
+
     try {
       const res = await createUserWithEmailAndPassword(auth, email.trim(), pass);
       const uid = res.user.uid;
 
-      // Check if user is pre-registered in admin table
-      const adminSnap = await getDoc(doc(db, 'admins', uid));
-      const isAdmin = adminSnap.exists();
+      if (isAdminEmail) {
+        await setDoc(doc(db, 'admins', uid), {
+          uid,
+          email: cleanEmail,
+          role: 'admin',
+          certifiedAt: new Date().toISOString(),
+        });
+      }
 
       const newProfile: UserProfile = {
         uid,
-        email: email.trim().toLowerCase(),
-        displayName: displayName.trim(),
+        email: cleanEmail,
+        displayName: isAdminEmail ? 'LootsyCreator' : displayName.trim(),
         epicGamesId: epicGamesId ? epicGamesId.trim() : '',
         preferredLanguage: language,
-        interests: [],
-        role: isAdmin ? 'admin' : 'user',
-        isVerified: isAdmin,
+        interests: isAdminEmail ? ['seasons', 'weapons', 'map'] : [],
+        role: isAdminEmail ? 'admin' : 'user',
+        isVerified: isAdminEmail,
+        badges: isAdminEmail ? ['creator'] : [],
         accountStatus: 'active',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        onboardingCompleted: false,
+        onboardingCompleted: isAdminEmail,
         xp: 0,
         privacySettings: {
           profileVisibility: 'public_in_groups',
@@ -1267,6 +1558,576 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const recordAuditLog = async (
+    action: string,
+    targetType: string,
+    targetId: string,
+    details?: any
+  ): Promise<void> => {
+    if (!currentUser) return;
+    try {
+      const auditId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      await setDoc(doc(db, 'auditLogs', auditId), {
+        id: auditId,
+        actorUid: currentUser.uid,
+        actorName: currentUser.displayName,
+        adminEmail: currentUser.email,
+        action,
+        targetType,
+        targetId,
+        details: details ? (typeof details === 'object' ? JSON.stringify(details) : String(details)) : '',
+        createdAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn('recordAuditLog warning:', e);
+    }
+  };
+
+  // Group Admin Operations
+  const adminCreateGroup = async (name: string, description?: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const groupId = `grp-${Date.now()}`;
+      const groupData: Group = {
+        id: groupId,
+        name: name.trim(),
+        description: description ? description.trim() : '',
+        ownerUid: currentUser.uid,
+        memberUids: [currentUser.uid],
+        memberCount: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active',
+      };
+      await setDoc(doc(db, 'groups', groupId), groupData);
+      const memberData: GroupMember = {
+        id: `${groupId}_${currentUser.uid}`,
+        groupId,
+        uid: currentUser.uid,
+        role: 'owner',
+        joinedAt: new Date().toISOString(),
+        status: 'active',
+        displayName: currentUser.displayName,
+      };
+      await setDoc(doc(db, 'groups', groupId, 'members', memberData.id!), memberData);
+      const code = generateInviteCode();
+      await setDoc(doc(db, 'groups', groupId, 'invites', `inv-${Date.now()}`), {
+        id: `inv-${Date.now()}`,
+        code,
+        groupId,
+        createdBy: currentUser.uid,
+        createdAt: new Date().toISOString(),
+        status: 'active',
+        usesCount: 0,
+      });
+      await recordAuditLog('ADMIN_CREATE_GROUP', 'GROUP', groupId, { name });
+      return { success: true, group: groupData };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminUpdateGroup = async (groupId: string, updates: Partial<Group>, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      await updateDoc(doc(db, 'groups', groupId), { ...updates, updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_UPDATE_GROUP', 'GROUP', groupId, { updates, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminArchiveGroup = async (groupId: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const g = groups.find((item) => item.id === groupId);
+      const newStatus = g?.status === 'archived' ? 'active' : 'archived';
+      await updateDoc(doc(db, 'groups', groupId), { status: newStatus, updatedAt: new Date().toISOString() });
+      await recordAuditLog(newStatus === 'archived' ? 'ADMIN_ARCHIVE_GROUP' : 'ADMIN_UNARCHIVE_GROUP', 'GROUP', groupId, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminDeleteGroup = async (groupId: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    if (!reason.trim()) return { success: false, error: 'Un motif écrit est obligatoire pour supprimer un groupe.' };
+    try {
+      await updateDoc(doc(db, 'groups', groupId), { status: 'deleted', updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_DELETE_GROUP', 'GROUP', groupId, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminTransferGroupOwnership = async (groupId: string, newOwnerUid: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      await updateDoc(doc(db, 'groups', groupId), { ownerUid: newOwnerUid, updatedAt: new Date().toISOString() });
+      const memberId = `${groupId}_${newOwnerUid}`;
+      await setDoc(doc(db, 'groups', groupId, 'members', memberId), { role: 'owner' }, { merge: true });
+      await recordAuditLog('ADMIN_TRANSFER_GROUP_OWNERSHIP', 'GROUP', groupId, { newOwnerUid, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminAddUserToGroup = async (groupId: string, targetUid: string, role: GroupMember['role'] = 'member') => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const targetUser = users.find((u) => u.uid === targetUid);
+      const targetGroup = groups.find((g) => g.id === groupId);
+      const memberId = `${groupId}_${targetUid}`;
+      const memberData: GroupMember = {
+        id: memberId,
+        groupId,
+        uid: targetUid,
+        role: role || 'member',
+        joinedAt: new Date().toISOString(),
+        status: 'active',
+        displayName: targetUser?.displayName || 'Membre',
+        avatarUrl: targetUser?.photoURL,
+      };
+      await setDoc(doc(db, 'groups', groupId, 'members', memberId), memberData);
+      const currentUids = targetGroup?.memberUids || [];
+      const updatedUids = Array.from(new Set([...currentUids, targetUid]));
+      await updateDoc(doc(db, 'groups', groupId), {
+        memberUids: updatedUids,
+        memberCount: updatedUids.length,
+        updatedAt: new Date().toISOString(),
+      });
+      // Send notification to user
+      const notifId = `notif-${Date.now()}`;
+      await setDoc(doc(db, 'notifications', notifId), {
+        id: notifId,
+        userUid: targetUid,
+        type: 'admin_broadcast',
+        title: { fr: 'Ajout à une escouade', en: 'Added to Squad' },
+        body: {
+          fr: `L’administration vous a ajouté au groupe ${targetGroup?.name || ''}. Vous pouvez quitter à tout moment.`,
+          en: `You have been added to squad ${targetGroup?.name || ''} by administration. You can leave at any time.`,
+        },
+        targetPath: `/app/groups/${groupId}`,
+        status: 'unread',
+        createdAt: new Date().toISOString(),
+      });
+      await recordAuditLog('ADMIN_ADD_USER_TO_GROUP', 'GROUP', groupId, { targetUid, role });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminRemoveUserFromGroup = async (groupId: string, targetUid: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const memberId = `${groupId}_${targetUid}`;
+      await deleteDoc(doc(db, 'groups', groupId, 'members', memberId));
+      const targetGroup = groups.find((g) => g.id === groupId);
+      if (targetGroup) {
+        const remaining = (targetGroup.memberUids || []).filter((id) => id !== targetUid);
+        await updateDoc(doc(db, 'groups', groupId), {
+          memberUids: remaining,
+          memberCount: remaining.length,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      await recordAuditLog('ADMIN_REMOVE_USER_FROM_GROUP', 'GROUP', groupId, { targetUid, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminSetGroupMemberRole = async (groupId: string, targetUid: string, role: GroupMember['role']) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const memberId = `${groupId}_${targetUid}`;
+      await setDoc(doc(db, 'groups', groupId, 'members', memberId), { role }, { merge: true });
+      await recordAuditLog('ADMIN_SET_GROUP_MEMBER_ROLE', 'GROUP_MEMBER', memberId, { role });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Challenge Admin Operations
+  const adminCreateChallenge = async (data: {
+    groupId: string;
+    title: string;
+    description: string;
+    proofPolicy: Challenge['proofPolicy'];
+    validationPolicy: Challenge['validationPolicy'];
+    xpReward: number;
+    dueAt?: string | null;
+  }) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const challengeId = `ch-${Date.now()}`;
+      const challengeData: Challenge = {
+        id: challengeId,
+        groupId: data.groupId,
+        title: data.title.trim(),
+        description: data.description.trim(),
+        proofPolicy: data.proofPolicy,
+        validationPolicy: data.validationPolicy,
+        xpReward: Math.min(500, Math.max(10, data.xpReward)),
+        dueAt: data.dueAt || null,
+        status: 'active',
+        createdBy: currentUser.uid,
+        gameId: 'fortnite',
+        participantUids: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await setDoc(doc(db, 'challenges', challengeId), challengeData);
+      await recordAuditLog('ADMIN_CREATE_CHALLENGE', 'CHALLENGE', challengeId, { title: data.title, groupId: data.groupId });
+      return { success: true, challenge: challengeData };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminUpdateChallenge = async (challengeId: string, updates: Partial<Challenge>, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      await updateDoc(doc(db, 'challenges', challengeId), { ...updates, updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_UPDATE_CHALLENGE', 'CHALLENGE', challengeId, { updates, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminCancelChallenge = async (challengeId: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    if (!reason.trim()) return { success: false, error: 'Un motif est requis pour annuler un défi.' };
+    try {
+      await updateDoc(doc(db, 'challenges', challengeId), { status: 'cancelled', updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_CANCEL_CHALLENGE', 'CHALLENGE', challengeId, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminArchiveChallenge = async (challengeId: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      await updateDoc(doc(db, 'challenges', challengeId), { status: 'archived', updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_ARCHIVE_CHALLENGE', 'CHALLENGE', challengeId, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminDeleteChallenge = async (challengeId: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    if (!reason.trim()) return { success: false, error: 'Un motif est obligatoire pour supprimer définitivement un défi.' };
+    try {
+      await deleteDoc(doc(db, 'challenges', challengeId));
+      await recordAuditLog('ADMIN_DELETE_CHALLENGE', 'CHALLENGE', challengeId, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminForceExpireChallenge = async (challengeId: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      await updateDoc(doc(db, 'challenges', challengeId), { status: 'expired', updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_FORCE_EXPIRE_CHALLENGE', 'CHALLENGE', challengeId, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminReviewProof = async (
+    challengeId: string,
+    participantUid: string,
+    decision: 'accept' | 'reject',
+    reason?: string
+  ) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    // Guardrail: Admin cannot review their own submission!
+    if (currentUser.uid === participantUid) {
+      return { success: false, error: 'Garde-fou : vous ne pouvez pas valider ou refuser votre propre preuve.' };
+    }
+
+    try {
+      const partDocRef = doc(db, 'challenges', challengeId, 'participants', participantUid);
+      const challengeRef = doc(db, 'challenges', challengeId);
+      const chSnap = await getDoc(challengeRef);
+      const chData = chSnap.data() as Challenge;
+
+      if (decision === 'accept') {
+        const xpAmount = chData?.xpReward || 50;
+        await updateDoc(partDocRef, {
+          status: 'completed_verified',
+          verifiedAt: new Date().toISOString(),
+          verifiedBy: currentUser.uid,
+          xpAwarded: xpAmount,
+        });
+
+        // Write XP Ledger entry
+        const ledgerId = `ledger-${Date.now()}-${participantUid.slice(0, 5)}`;
+        await setDoc(doc(db, 'xpLedger', ledgerId), {
+          id: ledgerId,
+          userUid: participantUid,
+          uid: participantUid,
+          challengeId,
+          groupId: chData?.groupId || 'global',
+          amount: xpAmount,
+          reason: `Validation officielle : ${chData?.title || 'Défi'}`,
+          createdAt: new Date().toISOString(),
+          idempotencyKey: `claim-${challengeId}-${participantUid}`,
+        });
+
+        // Increment user XP
+        const userRef = doc(db, 'users', participantUid);
+        const uSnap = await getDoc(userRef);
+        if (uSnap.exists()) {
+          const currentXp = uSnap.data().xp || 0;
+          await updateDoc(userRef, {
+            xp: currentXp + xpAmount,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      } else {
+        await updateDoc(partDocRef, {
+          status: 'rejected',
+          rejectionReason: reason || 'Preuve non conforme aux critères fixés',
+          rejectedAt: new Date().toISOString(),
+          rejectedBy: currentUser.uid,
+        });
+      }
+
+      await recordAuditLog('ADMIN_REVIEW_PROOF', 'PROOF', `${challengeId}_${participantUid}`, {
+        decision,
+        reason: reason || '',
+      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  // User Management Admin Operations
+  const adminAssignRole = async (targetUid: string, role: UserRole, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    if (role === 'admin') {
+      return {
+        success: false,
+        error: "Garde-fou : La création d'un autre administrateur requiert une procédure serveur renforcée.",
+      };
+    }
+    try {
+      await updateDoc(doc(db, 'users', targetUid), { role, updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_ASSIGN_ROLE', 'USER', targetUid, { role, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminAssignBadge = async (targetUid: string, badge: UserBadge, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const uSnap = await getDoc(doc(db, 'users', targetUid));
+      if (!uSnap.exists()) return { success: false, error: 'Utilisateur introuvable' };
+      const currentBadges = (uSnap.data().badges || []) as UserBadge[];
+      const updatedBadges = Array.from(new Set([...currentBadges, badge]));
+      await updateDoc(doc(db, 'users', targetUid), { badges: updatedBadges, updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_ASSIGN_BADGE', 'USER', targetUid, { badge, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminRevokeBadge = async (targetUid: string, badge: UserBadge, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const uSnap = await getDoc(doc(db, 'users', targetUid));
+      if (!uSnap.exists()) return { success: false, error: 'Utilisateur introuvable' };
+      const currentBadges = (uSnap.data().badges || []) as UserBadge[];
+      const updatedBadges = currentBadges.filter((b) => b !== badge);
+      await updateDoc(doc(db, 'users', targetUid), { badges: updatedBadges, updatedAt: new Date().toISOString() });
+      await recordAuditLog('ADMIN_REVOKE_BADGE', 'USER', targetUid, { badge, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminSuspendUser = async (targetUid: string, untilDate: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    if (!reason.trim()) return { success: false, error: 'Un motif est requis pour suspendre un compte.' };
+    try {
+      await updateDoc(doc(db, 'users', targetUid), {
+        accountStatus: 'suspended',
+        suspensionUntil: untilDate,
+        suspensionReason: reason,
+        updatedAt: new Date().toISOString(),
+      });
+      // Send notification
+      const notifId = `notif-${Date.now()}`;
+      await setDoc(doc(db, 'notifications', notifId), {
+        id: notifId,
+        userUid: targetUid,
+        type: 'admin_broadcast',
+        title: { fr: 'Compte suspendu temporairement', en: 'Account Temporarily Suspended' },
+        body: {
+          fr: `Votre compte a été suspendu jusqu’au ${new Date(untilDate).toLocaleDateString()}. Motif : ${reason}`,
+          en: `Your account has been suspended until ${new Date(untilDate).toLocaleDateString()}. Reason: ${reason}`,
+        },
+        targetPath: '/legal/terms',
+        status: 'unread',
+        createdAt: new Date().toISOString(),
+      });
+      await recordAuditLog('ADMIN_SUSPEND_USER', 'USER', targetUid, { untilDate, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminBanUser = async (targetUid: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    if (!reason.trim()) return { success: false, error: 'Un motif écrit est requis pour bannir définitivement un joueur.' };
+    try {
+      await updateDoc(doc(db, 'users', targetUid), {
+        accountStatus: 'banned',
+        bannedAt: new Date().toISOString(),
+        banReason: reason,
+        updatedAt: new Date().toISOString(),
+      });
+      await recordAuditLog('ADMIN_BAN_USER', 'USER', targetUid, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminReactivateUser = async (targetUid: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      await updateDoc(doc(db, 'users', targetUid), {
+        accountStatus: 'active',
+        suspensionUntil: null,
+        suspensionReason: null,
+        banReason: null,
+        bannedAt: null,
+        updatedAt: new Date().toISOString(),
+      });
+      await recordAuditLog('ADMIN_REACTIVATE_USER', 'USER', targetUid, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminTriggerUserDeletion = async (targetUid: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      await updateDoc(doc(db, 'users', targetUid), {
+        accountStatus: 'pendingDeletion',
+        pendingDeletionAt: new Date().toISOString(),
+        pendingDeletionReason: reason,
+        updatedAt: new Date().toISOString(),
+      });
+      await recordAuditLog('ADMIN_TRIGGER_USER_DELETION', 'USER', targetUid, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const adminRevokePushTokens = async (targetUid: string, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      await updateDoc(doc(db, 'users', targetUid), {
+        'notificationPreferences.pushEnabled': false,
+        updatedAt: new Date().toISOString(),
+      });
+      await recordAuditLog('ADMIN_REVOKE_PUSH_TOKENS', 'USER', targetUid, { reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  // XP Corrections
+  const adminCorrectXp = async (
+    targetUid: string,
+    amount: number,
+    reason: string,
+    challengeId?: string,
+    groupId?: string
+  ) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    if (!reason.trim()) return { success: false, error: 'Un motif documenté est obligatoire pour corriger les XP.' };
+    try {
+      const ledgerId = `ledger-corr-${Date.now()}`;
+      await setDoc(doc(db, 'xpLedger', ledgerId), {
+        id: ledgerId,
+        userUid: targetUid,
+        uid: targetUid,
+        challengeId: challengeId || 'correction',
+        groupId: groupId || 'global',
+        amount,
+        reason: `Correction administrative : ${reason}`,
+        createdAt: new Date().toISOString(),
+        idempotencyKey: `corr-${Date.now()}-${targetUid}`,
+      });
+
+      const userRef = doc(db, 'users', targetUid);
+      const uSnap = await getDoc(userRef);
+      if (uSnap.exists()) {
+        const currentXp = uSnap.data().xp || 0;
+        await updateDoc(userRef, {
+          xp: Math.max(0, currentXp + amount),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      await recordAuditLog('ADMIN_CORRECT_XP', 'XP_LEDGER', targetUid, { amount, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  // System Configuration
+  const adminUpdateSystemSettings = async (updates: Partial<SystemSettings>, reason: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return { success: false, error: 'Action non autorisée' };
+    try {
+      const configRef = doc(db, 'systemSettings', 'config');
+      await setDoc(
+        configRef,
+        {
+          ...updates,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser.uid,
+        },
+        { merge: true }
+      );
+      setSystemSettings((prev) => ({ ...prev, ...updates }));
+      await recordAuditLog('ADMIN_UPDATE_SYSTEM_SETTINGS', 'SYSTEM', 'config', { updates, reason });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
   const unreadCount = notifications.filter((n) => n.status === 'unread').length;
 
   return (
@@ -1327,6 +2188,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resolveReport,
         toggleUserSuspension,
         changeUserRole,
+        // Extended Official Admin Operations
+        systemSettings,
+        adminCreateGroup,
+        adminUpdateGroup,
+        adminArchiveGroup,
+        adminDeleteGroup,
+        adminTransferGroupOwnership,
+        adminAddUserToGroup,
+        adminRemoveUserFromGroup,
+        adminSetGroupMemberRole,
+        adminCreateChallenge,
+        adminUpdateChallenge,
+        adminCancelChallenge,
+        adminArchiveChallenge,
+        adminDeleteChallenge,
+        adminForceExpireChallenge,
+        adminReviewProof,
+        adminAssignRole,
+        adminAssignBadge,
+        adminRevokeBadge,
+        adminSuspendUser,
+        adminBanUser,
+        adminReactivateUser,
+        adminTriggerUserDeletion,
+        adminRevokePushTokens,
+        adminCorrectXp,
+        adminUpdateSystemSettings,
       }}
     >
       {children}

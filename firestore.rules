@@ -10,7 +10,8 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        request.auth.token.email == 'archemis.ai@gmail.com'
+        request.auth.token.email == 'archemis.ai@gmail.com' ||
+        request.auth.token.email == 'lootsy.creator.official@gmail.com'
       );
     }
 
@@ -53,7 +54,10 @@ service cloud.firestore {
     // Admins privileged collection
     match /admins/{userId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && request.auth.token.email == 'archemis.ai@gmail.com');
+      allow write: if isAdmin() || (isSignedIn() && (
+        request.auth.token.email == 'archemis.ai@gmail.com' ||
+        request.auth.token.email == 'lootsy.creator.official@gmail.com'
+      ));
     }
 
     // Public News Radar

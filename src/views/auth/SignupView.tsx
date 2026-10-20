@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { LootsyLogo } from '../../components/LootsyLogo';
 import { UserPlus, AlertCircle } from 'lucide-react';
@@ -8,7 +8,7 @@ interface SignupViewProps {
 }
 
 export const SignupView: React.FC<SignupViewProps> = ({ navigate }) => {
-  const { signup, loginWithGoogle, t, firebaseError, language } = useApp();
+  const { currentUser, signup, loginWithGoogle, t, firebaseError, language } = useApp();
   const [displayName, setDisplayName] = useState('');
   const [epicGamesId, setEpicGamesId] = useState('');
   const [email, setEmail] = useState('');
@@ -17,6 +17,12 @@ export const SignupView: React.FC<SignupViewProps> = ({ navigate }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/app');
+    }
+  }, [currentUser, navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();

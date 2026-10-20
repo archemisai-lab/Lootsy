@@ -61,7 +61,9 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, navig
   const groupChallenges = challenges.filter((c) => c.groupId === group.id);
   const members = groupMembers.filter((m) => group.memberUids.includes(m.uid));
   const groupAudit = auditLogs.filter(
-    (l) => l.targetId === group.id || l.details?.groupId === group.id
+    (l) =>
+      l.targetId === group.id ||
+      (typeof l.details === 'object' && l.details !== null && (l.details as Record<string, unknown>).groupId === group.id)
   );
 
   const handleCopyCode = () => {
@@ -326,9 +328,17 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, navig
             {members.map((m) => (
               <div key={m.uid} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#302923] flex items-center justify-center font-bold text-xs text-[#F6F0E7]">
-                    {m.displayName.charAt(0).toUpperCase()}
-                  </div>
+                  {m.avatarUrl ? (
+                    <img
+                      src={m.avatarUrl}
+                      alt={m.displayName}
+                      className="w-8 h-8 rounded-full object-cover border border-[#302923]"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#302923] flex items-center justify-center font-bold text-xs text-[#F6F0E7]">
+                      {m.displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <span className="text-xs font-bold text-[#F6F0E7] block">
                       {m.displayName}
